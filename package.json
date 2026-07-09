@@ -1,0 +1,25 @@
+{
+  "name": "member-file-portal",
+  "version": "1.0.0",
+  "description": "Premium member file portal with SEO optimization, transaction tracking, and file downloads.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "file-upload",
+    "transaction-portal",
+    "dashboard",
+    "member-portal"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {
+    "archiver": "^6.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
