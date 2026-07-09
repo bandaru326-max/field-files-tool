@@ -3,12 +3,60 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const archiver = require('archiver');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DASHBOARD_PASSCODE = process.env.DASHBOARD_PASSCODE || 'Praveen';
+
+// Detect if running on Vercel serverless environment
+const isVercel = process.env.VERCEL || process.env.NOW_BUILDER;
+const baseDir = isVercel ? '/tmp' : __dirname;
+
+// Enable CORS and body parsing
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Ensure required writeable directories exist in baseDir
+const dirs = [
+  path.join(baseDir, 'uploads'),
+  path.join(baseDir, 'uploads/temp'),
+  path.join(baseDir, 'data')
+];
+dirs.forEach(dirPath => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+});
+
+const membersPath = path.join(__dirname, 'data', 'members.json');
+const metadataPath = path.join(baseDir, 'data', 'metadata.json');
+
+// Initialize metadata file in /tmp if not exists (Vercel support)
+if (!fs.existsSync(metadataPath)) {
+  const committedMetadata = path.join(__dirname, 'data', 'metadata.json');
+  if (fs.existsSync(committedMetadata)) {
+    fs.copyFileSync(committedMetadata, metadataPath);
+  } else {
+    fs.writeFileSync(metadataPath, '[]', 'utf8');
+  }
+}
+
+// Initialize member folders from members.json on startup
+if (fs.existsSync(membersPath)) {
+  try {
+    const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
+    members.forEach(member => {
+      const memberDir = path.join(baseDir, 'uploads', member.id);
+      if (!fs.existsSync(memberDir)) {
+        fs.mkdirSync(memberDir, { recursive: true });
+      }
+    });
+  } catch (err) {
+    console.error('Error creating member directories on startup:', err);
+  }
+}
 
 // Middleware to verify dashboard passcode header
 const checkDashboardAuth = (req, res, next) => {
@@ -19,42 +67,10 @@ const checkDashboardAuth = (req, res, next) => {
   next();
 };
 
-// Enable CORS and body parsing
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Ensure basic directories exist
-const dirs = ['uploads', 'uploads/temp', 'data', 'public'];
-dirs.forEach(dir => {
-  const dirPath = path.join(__dirname, dir);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-});
-
-const membersPath = path.join(__dirname, 'data', 'members.json');
-const metadataPath = path.join(__dirname, 'data', 'metadata.json');
-
-// Initialize member folders from members.json on startup
-if (fs.existsSync(membersPath)) {
-  try {
-    const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
-    members.forEach(member => {
-      const memberDir = path.join(__dirname, 'uploads', member.id);
-      if (!fs.existsSync(memberDir)) {
-        fs.mkdirSync(memberDir, { recursive: true });
-      }
-    });
-  } catch (err) {
-    console.error('Error creating member directories on startup:', err);
-  }
-}
-
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 // Serve uploaded files statically for download/preview
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(baseDir, 'uploads')));
 
 // Verify Passcode API Endpoint
 app.post('/api/verify-password', (req, res) => {
@@ -68,7 +84,7 @@ app.post('/api/verify-password', (req, res) => {
 // Multer Storage Configuration (Uploads initially to temp, then moved)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const tempDir = path.join(__dirname, 'uploads', 'temp');
+    const tempDir = path.join(baseDir, 'uploads', 'temp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -125,10 +141,10 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
     const dateStr = new Date().toISOString().split('T')[0];
     const destName = `${dateStr}-${req.file.filename}`;
-    const destPath = path.join(__dirname, 'uploads', memberId, destName);
+    const destPath = path.join(baseDir, 'uploads', memberId, destName);
     
     // Ensure member directory exists
-    const memberDir = path.join(__dirname, 'uploads', memberId);
+    const memberDir = path.join(baseDir, 'uploads', memberId);
     if (!fs.existsSync(memberDir)) {
       fs.mkdirSync(memberDir, { recursive: true });
     }
@@ -238,7 +254,7 @@ app.delete('/api/uploads/:id', checkDashboardAuth, (req, res) => {
     }
 
     const record = metadata[recordIndex];
-    const fullPath = path.join(__dirname, record.filePath);
+    const fullPath = path.join(baseDir, record.filePath);
 
     // Delete the file from the filesystem if it exists
     if (fs.existsSync(fullPath)) {
@@ -252,52 +268,6 @@ app.delete('/api/uploads/:id', checkDashboardAuth, (req, res) => {
     res.json({ success: true, message: 'Record deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete record: ' + err.message });
-  }
-});
-
-// 5. Download All uploads as a zip
-app.get('/api/download-all', (req, res) => {
-  try {
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).send('No files uploaded yet.');
-    }
-
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    if (metadata.length === 0) {
-      return res.status(404).send('No files uploaded yet.');
-    }
-
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    
-    res.attachment('all-member-uploads.zip');
-    
-    archive.on('warning', function (err) {
-      if (err.code === 'ENOENT') {
-        console.warn(err);
-      } else {
-        throw err;
-      }
-    });
-
-    archive.on('error', function (err) {
-      res.status(500).send({ error: err.message });
-    });
-
-    archive.pipe(res);
-
-    metadata.forEach(record => {
-      const filePathOnDisk = path.join(__dirname, record.filePath);
-      if (fs.existsSync(filePathOnDisk)) {
-        // Zip path structure: "Member Name/Date_OriginalName"
-        const folderName = record.memberName.replace(/[^a-zA-Z0-9]/g, '_');
-        const zipEntryPath = `${folderName}/${record.uploadDate}_${record.originalName}`;
-        archive.file(filePathOnDisk, { name: zipEntryPath });
-      }
-    });
-
-    archive.finalize();
-  } catch (err) {
-    res.status(500).send({ error: 'Failed to create zip: ' + err.message });
   }
 });
 
