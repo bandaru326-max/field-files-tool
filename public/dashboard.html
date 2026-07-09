@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>Admin Dashboard | Manage Member Transaction Records</title>
+  <meta name="description" content="Manage, search, filter, and audit uploaded transaction details, PhonePe screenshots, and images. Download all files in a single zip package.">
+  <meta name="keywords" content="admin dashboard, transaction audit, download all files, filter date-wise, transaction search">
+  <meta name="robots" content="noindex, nofollow"> <!-- Keep dashboard hidden from public indexing for privacy -->
+
+  <!-- Favicon / Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Security Lock Overlay -->
+  <div class="lock-screen-overlay" id="dashboard-lock-screen">
+    <div class="lock-card">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(var(--shadow-glow));">🔒</div>
+      <h2>Dashboard Locked</h2>
+      <p>Enter the administrator passcode to access member files.</p>
+      
+      <div id="lock-error-msg" style="color: var(--error); font-size: 0.85rem; margin-bottom: 1rem; display: none; font-weight: 500;">Invalid passcode. Please try again.</div>
+      
+      <form id="lock-form" onsubmit="event.preventDefault();">
+        <input type="password" id="lock-passcode" class="lock-input" placeholder="••••" required autofocus>
+        <button type="submit" class="btn-primary" id="lock-submit-btn">Unlock Dashboard</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="/upload" class="logo" id="dashboard-logo-link">
+        <div class="logo-icon">MP</div>
+        <span class="logo-text">MemberPortal</span>
+      </a>
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/upload" id="dashboard-nav-upload">Upload Files</a></li>
+          <li><a href="/dashboard" class="active" id="dashboard-nav-dashboard">Dashboard</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" aria-labelledby="dashboard-heading">
+    <h1 id="dashboard-heading">Portal Data Management Dashboard</h1>
+    <p>View, search, filter, and download all uploaded records. Tracks transactions, receipts, and event photos for all 20 members.</p>
+  </section>
+
+  <!-- Main Grid Dashboard -->
+  <main>
+    
+    <!-- Stats Banner -->
+    <section class="stats-container" aria-label="Quick Statistics">
+      <div class="stat-card">
+        <div class="stat-details">
+          <h3>Total Uploads</h3>
+          <div class="stat-number" id="stat-total">0</div>
+        </div>
+        <div class="stat-icon">📈</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-details">
+          <h3>PhonePe Screenshots</h3>
+          <div class="stat-number" id="stat-screenshots">0</div>
+        </div>
+        <div class="stat-icon">📱</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-details">
+          <h3>Doc Screenshots</h3>
+          <div class="stat-number" id="stat-documents">0</div>
+        </div>
+        <div class="stat-icon">📄</div>
+      </div>
+    </section>
+
+    <!-- Content Workspace -->
+    <div class="dashboard-grid">
+      
+      <!-- Left sidebar panel for searching/filtering -->
+      <aside class="sidebar-panel" aria-label="Filters">
+        <div class="panel-title">
+          <h2>Filter Records</h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        </div>
+
+        <form id="filter-form">
+          <!-- Text Search -->
+          <div class="form-group">
+            <label for="search-input">Search Reason & Name</label>
+            <input type="text" id="search-input" placeholder="Search reason, member name..." aria-label="Search reason, member name">
+          </div>
+
+          <!-- Remarks Search -->
+          <div class="form-group">
+            <label for="remarks-search">Search Remarks</label>
+            <input type="text" id="remarks-search" placeholder="Search remarks keywords..." aria-label="Search remarks">
+          </div>
+
+          <!-- Member Selector -->
+          <div class="form-group">
+            <label for="filter-member">Filter By Member</label>
+            <div class="select-wrapper">
+              <select id="filter-member">
+                <option value="">All Members</option>
+                <!-- Hydrated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Date Range Start -->
+          <div class="form-group">
+            <label for="filter-start-date">From Date</label>
+            <input type="date" id="filter-start-date" style="width:100%; padding:0.85rem; background:rgba(8,9,14,0.6); border:1px solid var(--glass-border); border-radius:var(--radius-md); color:#fff; font-family:inherit; outline:none;">
+          </div>
+
+          <!-- Date Range End -->
+          <div class="form-group">
+            <label for="filter-end-date">To Date</label>
+            <input type="date" id="filter-end-date" style="width:100%; padding:0.85rem; background:rgba(8,9,14,0.6); border:1px solid var(--glass-border); border-radius:var(--radius-md); color:#fff; font-family:inherit; outline:none;">
+          </div>
+
+          <!-- Upload Type Selector -->
+          <div class="form-group">
+            <label for="filter-type">Upload Type</label>
+            <div class="select-wrapper">
+              <select id="filter-type">
+                <option value="">All Formats</option>
+                <option value="PhonePe Screenshot">PhonePe Screenshot</option>
+                <option value="Document Screenshot">Document Screenshot</option>
+              </select>
+            </div>
+          </div>
+        </form>
+
+        <button class="btn-primary" id="download-filtered-btn" style="margin-top: 1.5rem; width: 100%;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Filtered Files
+        </button>
+      </aside>
+
+      <!-- Main Results Panel -->
+      <section class="content-panel" aria-label="Upload History">
+        <div class="section-header">
+          <h2 class="section-title">Upload History (<span id="results-count">0</span>)</h2>
+        </div>
+
+        <div id="records-container" aria-live="polite">
+          <!-- Loaded dynamically via javascript -->
+          <div class="empty-state">
+            <div class="empty-state-icon">📥</div>
+            <h3>Loading uploads...</h3>
+            <p>Please wait while we connect to the database server.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Image Preview Modal -->
+  <div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="preview-modal-title">File Preview</h3>
+        <button class="modal-close" id="preview-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-preview-wrapper">
+          <img src="" alt="File Preview Image" class="modal-preview-img" id="preview-image">
+        </div>
+        <div class="modal-details">
+          <div class="details-row">
+            <h4>Uploaded By</h4>
+            <p id="preview-member-name">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Upload Type</h4>
+            <p id="preview-type">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Reason for Upload</h4>
+            <p id="preview-reason">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Remarks</h4>
+            <p id="preview-remarks" class="empty">-</p>
+          </div>
+          <div class="details-row">
+            <h4>File Name</h4>
+            <p id="preview-filename" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <div class="modal-container" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="delete-modal-title" style="color: var(--error);">Confirm Deletion</h3>
+        <button class="modal-close" id="delete-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body single-col" style="padding: 2rem;">
+        <div style="font-size: 3rem; color: var(--error); margin-bottom: 1rem;">⚠️</div>
+        <p>Are you sure you want to permanently delete this file and record? This action cannot be undone.</p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+          <button class="btn-primary" id="confirm-delete-btn" style="background: var(--error); box-shadow: none; padding: 0.75rem 1.5rem; font-size: 0.95rem;">Yes, Delete</button>
+          <button class="btn-primary" id="cancel-delete-btn" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: #fff; box-shadow: none; padding: 0.75rem 1.5rem; font-size: 0.95rem;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Script -->
+  <script src="app.js"></script>
+</body>
+</html>
