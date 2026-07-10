@@ -16,6 +16,7 @@
   "author": "Antigravity",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.2",
     "archiver": "^6.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
