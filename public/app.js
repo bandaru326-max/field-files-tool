@@ -382,7 +382,7 @@ function initPortalPage() {
     const memberIdVal = memberSelectHidden.disabled ? adminMemberSelect.value : memberSelectHidden.value;
     formData.append('memberId', memberIdVal);
 
-    const activeType = document.querySelector('input[name="type"]:checked').value;
+    const activeType = document.getElementById('upload-type-hidden').value;
     formData.append('type', activeType);
 
     formData.append('reason', document.getElementById('reason-input').value);
@@ -468,7 +468,6 @@ function initDashboardPage() {
   const filterMember = document.getElementById('filter-member');
   const filterStartDate = document.getElementById('filter-start-date');
   const filterEndDate = document.getElementById('filter-end-date');
-  const filterType = document.getElementById('filter-type');
   const downloadFilteredBtn = document.getElementById('download-filtered-btn');
 
   // Modal Nodes
@@ -503,8 +502,8 @@ function initDashboardPage() {
   });
 
   // Filter Listeners
-  [filterMember, filterStartDate, filterEndDate, filterType].forEach(elem => {
-    elem.addEventListener('change', fetchDashboardUploads);
+  [filterMember, filterStartDate, filterEndDate].forEach(elem => {
+    if (elem) elem.addEventListener('change', fetchDashboardUploads);
   });
 
   // Download Filtered Action
@@ -601,7 +600,6 @@ async function fetchDashboardUploads() {
   const memberId = document.getElementById('filter-member').value;
   const startDate = document.getElementById('filter-start-date').value;
   const endDate = document.getElementById('filter-end-date').value;
-  const type = document.getElementById('filter-type').value;
 
   const params = new URLSearchParams();
   if (search) params.append('search', search);
@@ -609,7 +607,6 @@ async function fetchDashboardUploads() {
   if (memberId) params.append('memberId', memberId);
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
-  if (type) params.append('type', type);
 
   try {
     const res = await fetch(`/api/uploads?${params.toString()}`, {
@@ -641,19 +638,19 @@ async function fetchDashboardUploads() {
 
 function updateDashboardStatistics(records) {
   const totalElem = document.getElementById('stat-total');
-  const screenshotElem = document.getElementById('stat-screenshots');
-  const docsElem = document.getElementById('stat-documents');
+  const activeEngineersElem = document.getElementById('stat-active-engineers');
   const resultsCount = document.getElementById('results-count');
 
   if (!totalElem) return;
 
   const total = records.length;
-  const screenshots = records.filter(r => r.type === 'PhonePe Screenshot').length;
-  const docs = records.filter(r => r.type === 'Document Screenshot').length;
+  
+  // Calculate active unique engineers (unique memberId count)
+  const uniqueMemberIds = new Set(records.map(r => r.memberId));
+  const activeEngineers = uniqueMemberIds.size;
 
   totalElem.textContent = total;
-  screenshotElem.textContent = screenshots;
-  if (docsElem) docsElem.textContent = docs;
+  if (activeEngineersElem) activeEngineersElem.textContent = activeEngineers;
   
   if (resultsCount) {
     resultsCount.textContent = total;
@@ -713,7 +710,6 @@ function renderRecords(records, showDeleteActions = false) {
         <article class="record-card" aria-labelledby="title-${record.id}">
           <div class="record-media-container" ${mediaPreview} onclick="openPreview('${record.id}')" aria-label="View large preview of file">
             ${!isImg ? `<div class="record-media-placeholder">${isPdf ? '📕' : '📄'}</div>` : ''}
-            <span class="record-badge ${record.type === 'PhonePe Screenshot' ? 'badge-screenshot' : 'badge-document'}">${record.type}</span>
           </div>
           <div class="record-card-body">
             <h3 class="record-member-name" id="title-${record.id}">${record.memberName}</h3>

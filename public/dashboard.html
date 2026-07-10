@@ -49,27 +49,20 @@
   <main>
     
     <!-- Stats Banner -->
-    <section class="stats-container" aria-label="Quick Statistics">
+    <section class="stats-container" aria-label="Quick Statistics" style="grid-template-columns: repeat(2, 1fr);">
       <div class="stat-card">
         <div class="stat-details">
-          <h3>Total Uploads</h3>
+          <h3>Total Documents</h3>
           <div class="stat-number" id="stat-total">0</div>
         </div>
-        <div class="stat-icon">📈</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-details">
-          <h3>PhonePe Screenshots</h3>
-          <div class="stat-number" id="stat-screenshots">0</div>
-        </div>
-        <div class="stat-icon">📱</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-details">
-          <h3>Doc Screenshots</h3>
-          <div class="stat-number" id="stat-documents">0</div>
-        </div>
         <div class="stat-icon">📄</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-details">
+          <h3>Active Engineers</h3>
+          <div class="stat-number" id="stat-active-engineers">0</div>
+        </div>
+        <div class="stat-icon">👷</div>
       </div>
     </section>
 
@@ -119,17 +112,7 @@
             <input type="date" id="filter-end-date" style="width:100%; padding:0.85rem; background:rgba(8,9,14,0.6); border:1px solid var(--glass-border); border-radius:var(--radius-md); color:#fff; font-family:inherit; outline:none;">
           </div>
 
-          <!-- Upload Type Selector -->
-          <div class="form-group">
-            <label for="filter-type">Upload Type</label>
-            <div class="select-wrapper">
-              <select id="filter-type">
-                <option value="">All Formats</option>
-                <option value="PhonePe Screenshot">PhonePe Screenshot</option>
-                <option value="Document Screenshot">Document Screenshot</option>
-              </select>
-            </div>
-          </div>
+
         </form>
 
         <button class="btn-primary" id="download-filtered-btn" style="margin-top: 1.5rem; width: 100%;">

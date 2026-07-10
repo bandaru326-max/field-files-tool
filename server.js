@@ -296,15 +296,11 @@ app.get('/api/uploads', checkAuth, (req, res) => {
       metadata = metadata.filter(r => r.memberId === req.user.id);
     }
 
-    const { search, memberId, startDate, endDate, type, remarks } = req.query;
+    const { search, memberId, startDate, endDate, remarks } = req.query;
 
     // Apply filtering (Only allowed for Admin, or within Operator's restricted set)
     if (memberId && req.user.role === 'admin') {
       metadata = metadata.filter(r => r.memberId === memberId);
-    }
-
-    if (type) {
-      metadata = metadata.filter(r => r.type === type);
     }
 
     if (startDate) {
