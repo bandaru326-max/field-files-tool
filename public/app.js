@@ -336,6 +336,7 @@ function initPortalPage() {
     selectedFiles.forEach((file, idx) => {
       const fileRow = document.createElement('div');
       fileRow.className = 'selected-file-box';
+      fileRow.style.display = 'flex';
       fileRow.style.margin = '0'; // reset margins
       fileRow.style.flexDirection = 'column';
       fileRow.style.alignItems = 'stretch';
