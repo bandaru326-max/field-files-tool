@@ -190,13 +190,13 @@ app.get('/api/members', (req, res) => {
   }
 });
 
-// 3. Upload file & metadata (authenticated)
-app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
+// 3. Upload multiple files & metadata (authenticated)
+app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
   try {
     let { memberId, type, reason, remarks } = req.body;
     
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
     }
 
     // Force Operator to upload ONLY to their own folder
@@ -205,7 +205,9 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
     }
 
     if (!memberId) {
-      fs.unlinkSync(req.file.path);
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      });
       return res.status(400).json({ error: 'Member selection is required' });
     }
 
@@ -213,24 +215,16 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
     const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
     const member = members.find(m => m.id === memberId);
     if (!member) {
-      fs.unlinkSync(req.file.path);
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      });
       return res.status(400).json({ error: 'Selected member does not exist' });
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
-    const destName = `${dateStr}-${req.file.filename}`;
-    const destPath = path.join(baseDir, 'uploads', memberId, destName);
-    
-    // Ensure member directory exists
-    const memberDir = path.join(baseDir, 'uploads', memberId);
-    if (!fs.existsSync(memberDir)) {
-      fs.mkdirSync(memberDir, { recursive: true });
-    }
+    const newRecords = [];
 
-    // Move file from temp to member directory
-    fs.renameSync(req.file.path, destPath);
-
-    // Save metadata
+    // Load current metadata list
     let metadata = [];
     if (fs.existsSync(metadataPath)) {
       try {
@@ -240,29 +234,50 @@ app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
       }
     }
 
-    const newRecord = {
-      id: '_' + Math.random().toString(36).substr(2, 9) + Date.now(),
-      memberId,
-      memberName: member.name,
-      filename: destName,
-      originalName: req.file.originalname,
-      filePath: `uploads/${memberId}/${destName}`,
-      type: type || 'Document Screenshot', // 'PhonePe Screenshot' or 'Document Screenshot'
-      reason: reason || 'Not Specified',
-      remarks: remarks || '',
-      uploadDate: dateStr,
-      timestamp: Date.now(),
-      size: req.file.size
-    };
+    for (const file of req.files) {
+      const destName = `${dateStr}-${file.filename}`;
+      const destPath = path.join(baseDir, 'uploads', memberId, destName);
+      
+      // Ensure member directory exists
+      const memberDir = path.join(baseDir, 'uploads', memberId);
+      if (!fs.existsSync(memberDir)) {
+        fs.mkdirSync(memberDir, { recursive: true });
+      }
 
-    metadata.unshift(newRecord); // Add to beginning (newest first)
+      // Move file from temp to member directory
+      fs.renameSync(file.path, destPath);
+
+      const newRecord = {
+        id: '_' + Math.random().toString(36).substr(2, 9) + Date.now(),
+        memberId,
+        memberName: member.name,
+        filename: destName,
+        originalName: file.originalname,
+        filePath: `uploads/${memberId}/${destName}`,
+        type: type || 'Document Screenshot',
+        reason: reason || 'Not Specified',
+        remarks: remarks || '',
+        uploadDate: dateStr,
+        timestamp: Date.now(),
+        size: file.size
+      };
+
+      metadata.unshift(newRecord); // Add to beginning (newest first)
+      newRecords.push(newRecord);
+    }
+
+    // Write updated metadata
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
 
-    res.status(201).json({ success: true, record: newRecord });
+    res.status(201).json({ success: true, records: newRecords });
   } catch (err) {
     console.error('Upload error:', err);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    if (req.files) {
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
     }
     res.status(500).json({ error: 'File upload failed: ' + err.message });
   }

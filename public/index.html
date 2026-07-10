@@ -137,27 +137,20 @@
 
           <!-- Step 3: Drag & Drop File Upload -->
           <div class="form-group">
-            <label id="file-drop-label">Choose File <span>*</span></label>
+            <label id="file-drop-label">Choose Files <span>*</span></label>
             
             <div class="upload-zone" id="upload-zone" aria-labelledby="file-drop-label">
               <div class="upload-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               </div>
-              <p>Drag and drop your file here, or <span style="color: var(--accent-cyan); font-weight: 500;">browse computer</span></p>
-              <p class="file-requirements">Supports JPG, PNG, PDF & HEIC (Max 10MB)</p>
-              <input type="file" id="file-input" name="file" class="file-input" accept="image/*,application/pdf" required>
+              <p>Drag and drop files here, or <span style="color: var(--accent-cyan); font-weight: 500;">browse computer</span></p>
+              <p class="file-requirements">Select multiple JPG, PNG, PDF & HEIC (Max 10MB per file)</p>
+              <input type="file" id="file-input" name="files" class="file-input" accept="image/*,application/pdf" multiple required>
             </div>
 
-            <!-- Selected File Box -->
-            <div class="selected-file-box" id="file-preview-box">
-              <div class="file-info">
-                <div class="file-thumb" id="file-thumb">📁</div>
-                <div>
-                  <div class="file-name-text" id="file-name">filename.png</div>
-                  <div class="file-size-text" id="file-size">1.2 MB</div>
-                </div>
-              </div>
-              <button type="button" class="remove-file-btn" id="remove-file-btn" aria-label="Remove selected file">&times;</button>
+            <!-- Selected Files Preview Container -->
+            <div id="file-preview-box" style="display: none; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+              <!-- Dynamically populated via app.js -->
             </div>
           </div>
 

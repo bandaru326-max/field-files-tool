@@ -111,17 +111,15 @@ function initPortalPage() {
 
   const uploadContainer = document.getElementById('upload-container');
   const uploadForm = document.getElementById('upload-form');
-  const operatorDisplayName = document.getElementById('operator-display-name');
-  const memberSelectHidden = document.getElementById('member-select');
+  const adminMemberSelect = document.getElementById('member-select');
+  const memberSelectHidden = document.getElementById('member-select-hidden');
 
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
   const filePreviewBox = document.getElementById('file-preview-box');
-  const fileThumb = document.getElementById('file-thumb');
-  const fileName = document.getElementById('file-name');
-  const fileSize = document.getElementById('file-size');
-  const removeFileBtn = document.getElementById('remove-file-btn');
   const submitBtn = document.getElementById('submit-btn');
+
+  let selectedFiles = [];
 
   // check if session already exists
   const role = sessionStorage.getItem('user_role');
@@ -256,69 +254,143 @@ function initPortalPage() {
 
   uploadZone.addEventListener('drop', (e) => {
     const dt = e.dataTransfer;
-    const files = dt.files;
+    const files = Array.from(dt.files);
     if (files.length > 0) {
-      fileInput.files = files;
-      handleFileSelected(files[0]);
+      handleFilesAdded(files);
     }
   });
 
   uploadZone.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileSelected(e.target.files[0]);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      handleFilesAdded(files);
     }
   });
 
-  removeFileBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    resetFileSelection();
-  });
+  function handleFilesAdded(files) {
+    let duplicateOrInvalid = false;
+    
+    files.forEach(file => {
+      // Validate file size (10MB limit per file)
+      if (file.size > 10 * 1024 * 1024) {
+        showAlert('error', `File "${file.name}" exceeds the 10MB limit.`);
+        duplicateOrInvalid = true;
+        return;
+      }
+      
+      // Prevent duplicates
+      if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+        duplicateOrInvalid = true;
+        return;
+      }
 
-  function handleFileSelected(file) {
-    if (file.size > 10 * 1024 * 1024) {
-      showAlert('error', 'File size exceeds the 10MB limit.');
-      resetFileSelection();
+      // Check max files limit (15 files)
+      if (selectedFiles.length >= 15) {
+        showAlert('error', 'Maximum limit of 15 files reached.');
+        duplicateOrInvalid = true;
+        return;
+      }
+
+      selectedFiles.push(file);
+    });
+
+    renderSelectedFiles();
+  }
+
+  window.removeSelectedFile = function(index) {
+    const previewBox = document.getElementById('file-preview-box');
+    const childRow = previewBox.children[index];
+    if (childRow && childRow.dataset.url) {
+      URL.revokeObjectURL(childRow.dataset.url);
+    }
+
+    selectedFiles.splice(index, 1);
+    renderSelectedFiles();
+  };
+
+  function renderSelectedFiles() {
+    filePreviewBox.innerHTML = '';
+    
+    if (selectedFiles.length === 0) {
+      filePreviewBox.style.display = 'none';
+      uploadZone.style.display = 'flex';
+      fileInput.required = true;
+      fileInput.value = '';
       return;
     }
-
-    fileName.textContent = file.name;
-    fileSize.textContent = formatBytes(file.size);
     
-    if (file.type.startsWith('image/')) {
-      const fileUrl = URL.createObjectURL(file);
-      fileThumb.style.backgroundImage = `url('${fileUrl}')`;
-      fileThumb.textContent = '';
-      fileThumb.onload = () => URL.revokeObjectURL(fileUrl);
-    } else if (file.type === 'application/pdf') {
-      fileThumb.style.backgroundImage = 'none';
-      fileThumb.textContent = '📕';
-    } else {
-      fileThumb.style.backgroundImage = 'none';
-      fileThumb.textContent = '📄';
-    }
-
-    uploadZone.style.display = 'none';
     filePreviewBox.style.display = 'flex';
+    uploadZone.style.display = 'none';
+    fileInput.required = false;
+
+    selectedFiles.forEach((file, idx) => {
+      const fileRow = document.createElement('div');
+      fileRow.className = 'selected-file-box';
+      fileRow.style.margin = '0'; // reset margins
+
+      let thumbText = '📁';
+      let thumbStyle = '';
+      
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        thumbStyle = `background-image: url('${url}'); background-size: cover; background-position: center;`;
+        thumbText = '';
+        fileRow.dataset.url = url;
+      } else if (file.type === 'application/pdf') {
+        thumbText = '📕';
+      }
+
+      fileRow.innerHTML = `
+        <div class="file-info">
+          <div class="file-thumb" style="${thumbStyle}">${thumbText}</div>
+          <div>
+            <div class="file-name-text" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(file.name)}</div>
+            <div class="file-size-text">${formatBytes(file.size)}</div>
+          </div>
+        </div>
+        <button type="button" class="remove-file-btn" onclick="removeSelectedFile(${idx})" aria-label="Remove this file">&times;</button>
+      `;
+      filePreviewBox.appendChild(fileRow);
+    });
   }
 
   function resetFileSelection() {
-    fileInput.value = '';
-    uploadZone.style.display = 'flex';
-    filePreviewBox.style.display = 'none';
+    selectedFiles = [];
+    renderSelectedFiles();
   }
 
   // Handle Form Submission
   uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    if (selectedFiles.length === 0) {
+      showAlert('error', 'Please select at least one file to upload.');
+      return;
+    }
+
     if (!uploadForm.checkValidity()) return;
 
-    const formData = new FormData(uploadForm);
     submitBtn.disabled = true;
     const origBtnContent = submitBtn.innerHTML;
-    submitBtn.innerHTML = `Uploading...`;
+    submitBtn.innerHTML = `Uploading ${selectedFiles.length} file(s)...`;
+
+    // Construct FormData manually from selectedFiles array
+    const formData = new FormData();
+    
+    const memberIdVal = memberSelectHidden.disabled ? adminMemberSelect.value : memberSelectHidden.value;
+    formData.append('memberId', memberIdVal);
+
+    const activeType = document.querySelector('input[name="type"]:checked').value;
+    formData.append('type', activeType);
+
+    formData.append('reason', document.getElementById('reason-input').value);
+    formData.append('remarks', document.getElementById('remarks-input').value);
+
+    selectedFiles.forEach(file => {
+      formData.append('files', file);
+    });
 
     try {
       const response = await fetch('/api/upload', {
@@ -330,11 +402,13 @@ function initPortalPage() {
       const result = await response.json();
 
       if (response.ok) {
-        showAlert('success', 'File successfully uploaded to your operator folder!');
+        showAlert('success', `Successfully uploaded ${selectedFiles.length} file(s) to operator folder!`);
         uploadForm.reset();
         resetFileSelection();
+        
         // Hydrate operator details back if operator
         if (sessionStorage.getItem('user_role') === 'operator') {
+          const operatorDisplayName = document.getElementById('operator-display-name');
           operatorDisplayName.value = sessionStorage.getItem('user_name');
           memberSelectHidden.value = sessionStorage.getItem('user_id');
         }
