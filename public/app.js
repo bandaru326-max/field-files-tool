@@ -735,6 +735,12 @@ function renderRecords(records, showDeleteActions = false) {
         mediaPreview = `style="background-image: url('/${record.filePath}');"`;
       }
 
+      // Secure API stream download URL
+      const tokenVal = encodeURIComponent(sessionStorage.getItem('auth_token') || '');
+      const roleVal = encodeURIComponent(sessionStorage.getItem('user_role') || '');
+      const userIdVal = encodeURIComponent(sessionStorage.getItem('user_id') || '');
+      const downloadUrl = `/api/download/${record.id}?token=${tokenVal}&role=${roleVal}&userId=${userIdVal}`;
+
       htmlContent += `
         <article class="record-card" aria-labelledby="title-${record.id}">
           <div class="record-media-container" ${mediaPreview} onclick="openPreview('${record.id}')" aria-label="View large preview of file">
@@ -749,7 +755,7 @@ function renderRecords(records, showDeleteActions = false) {
           <div class="record-card-footer">
             <time class="record-date" datetime="${record.uploadDate}">${formatTime(record.timestamp)}</time>
             <div class="record-actions">
-              <a href="/${record.filePath}" download="${record.originalName}" class="action-btn" title="Download direct file" aria-label="Download original file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.2); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; text-decoration: none; color: var(--accent-cyan); font-weight: 500;">
+              <a href="${downloadUrl}" download="${record.originalName}" class="action-btn" title="Download direct file" aria-label="Download original file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.2); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; text-decoration: none; color: var(--accent-cyan); font-weight: 500;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Download
               </a>

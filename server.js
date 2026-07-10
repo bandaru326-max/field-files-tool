@@ -152,6 +152,20 @@ app.post('/api/login', (req, res) => {
   res.status(401).json({ error: 'Invalid username or password' });
 });
 
+// Helper to move files across partitions safely (handles cross-device EXDEV error)
+function moveFileSafe(oldPath, newPath) {
+  try {
+    fs.renameSync(oldPath, newPath);
+  } catch (err) {
+    if (err.code === 'EXDEV' || err.code === 'EACCES') {
+      fs.copyFileSync(oldPath, newPath);
+      fs.unlinkSync(oldPath);
+    } else {
+      throw err;
+    }
+  }
+}
+
 // Multer Storage Configuration (Uploads initially to temp, then moved)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -257,8 +271,8 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
         fs.mkdirSync(memberDir, { recursive: true });
       }
 
-      // Move file from temp to member directory
-      fs.renameSync(file.path, destPath);
+      // Move file from temp to member directory safely
+      moveFileSafe(file.path, destPath);
 
       const newRecord = {
         id: '_' + Math.random().toString(36).substr(2, 9) + Date.now(),
@@ -382,6 +396,64 @@ app.delete('/api/uploads/:id', checkAuth, (req, res) => {
     res.json({ success: true, message: 'Record deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete record: ' + err.message });
+  }
+});
+
+// 6. Download file (authenticated via query param or headers)
+app.get('/api/download/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const token = req.query.token;
+    const role = req.query.role;
+    const userId = req.query.userId;
+
+    // Validate authentication
+    if (!role || !token || !userId) {
+      return res.status(401).json({ error: 'Unauthorized: Missing download credentials' });
+    }
+
+    if (role === 'admin') {
+      if (fs.existsSync(adminsPath)) {
+        const admins = JSON.parse(fs.readFileSync(adminsPath, 'utf8'));
+        const admin = admins.find(a => a.username.toLowerCase() === userId.toLowerCase() && a.password === token);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+      } else {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    } else if (role === 'operator') {
+      const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
+      const member = members.find(m => m.id === userId && m.password === token);
+      if (!member) return res.status(401).json({ error: 'Unauthorized' });
+    } else {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!fs.existsSync(metadataPath)) {
+      return res.status(404).json({ error: 'Metadata database not found' });
+    }
+
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const record = metadata.find(r => r.id === id);
+
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    // Restriction: Operator can only download their own files
+    if (role === 'operator' && record.memberId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: Access to other user\'s files is denied' });
+    }
+
+    const fullPath = path.join(baseDir, record.filePath);
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Physical file not found on server' });
+    }
+
+    // Stream download with correct content disposition
+    res.download(fullPath, record.originalName);
+  } catch (err) {
+    console.error('Download error:', err);
+    res.status(500).json({ error: 'Failed to download file' });
   }
 });
 
