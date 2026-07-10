@@ -117,9 +117,15 @@ function initPortalPage() {
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
   const filePreviewBox = document.getElementById('file-preview-box');
+  const addMoreContainer = document.getElementById('add-more-container');
+  const addMoreBtn = document.getElementById('add-more-btn');
   const submitBtn = document.getElementById('submit-btn');
 
   let selectedFiles = [];
+
+  if (addMoreBtn) {
+    addMoreBtn.addEventListener('click', () => fileInput.click());
+  }
 
   // check if session already exists
   const role = sessionStorage.getItem('user_role');
@@ -315,6 +321,7 @@ function initPortalPage() {
     
     if (selectedFiles.length === 0) {
       filePreviewBox.style.display = 'none';
+      if (addMoreContainer) addMoreContainer.style.display = 'none';
       uploadZone.style.display = 'flex';
       fileInput.required = true;
       fileInput.value = '';
@@ -322,6 +329,7 @@ function initPortalPage() {
     }
     
     filePreviewBox.style.display = 'flex';
+    if (addMoreContainer) addMoreContainer.style.display = 'block';
     uploadZone.style.display = 'none';
     fileInput.required = false;
 
@@ -329,6 +337,9 @@ function initPortalPage() {
       const fileRow = document.createElement('div');
       fileRow.className = 'selected-file-box';
       fileRow.style.margin = '0'; // reset margins
+      fileRow.style.flexDirection = 'column';
+      fileRow.style.alignItems = 'stretch';
+      fileRow.style.gap = '0.75rem';
 
       let thumbText = '📁';
       let thumbStyle = '';
@@ -343,16 +354,30 @@ function initPortalPage() {
       }
 
       fileRow.innerHTML = `
-        <div class="file-info">
-          <div class="file-thumb" style="${thumbStyle}">${thumbText}</div>
-          <div>
-            <div class="file-name-text" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(file.name)}</div>
-            <div class="file-size-text">${formatBytes(file.size)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="file-info">
+            <div class="file-thumb" style="${thumbStyle}">${thumbText}</div>
+            <div>
+              <div class="file-name-text" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(file.name)}</div>
+              <div class="file-size-text">${formatBytes(file.size)}</div>
+            </div>
           </div>
+          <button type="button" class="remove-file-btn" onclick="removeSelectedFile(${idx})" aria-label="Remove this file">&times;</button>
         </div>
-        <button type="button" class="remove-file-btn" onclick="removeSelectedFile(${idx})" aria-label="Remove this file">&times;</button>
+        <div class="form-group" style="margin: 0; width: 100%;">
+          <input type="text" class="file-remarks-input" data-index="${idx}" placeholder="Remarks for this file (optional)..." style="width: 100%; padding: 0.65rem; background: rgba(8, 9, 14, 0.4); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); color: #fff; font-family: inherit; font-size: 0.85rem; outline: none; transition: var(--transition-normal);" value="${escapeHTML(file.remarks || '')}">
+        </div>
       `;
       filePreviewBox.appendChild(fileRow);
+    });
+
+    // Bind input change listeners to sync remarks back to selectedFiles array
+    const remarksInputs = filePreviewBox.querySelectorAll('.file-remarks-input');
+    remarksInputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        selectedFiles[idx].remarks = e.target.value;
+      });
     });
   }
 
@@ -386,10 +411,13 @@ function initPortalPage() {
     formData.append('type', activeType);
 
     formData.append('reason', document.getElementById('reason-input').value);
+    
+    // Bottom global remarks input (preserved)
     formData.append('remarks', document.getElementById('remarks-input').value);
 
     selectedFiles.forEach(file => {
       formData.append('files', file);
+      formData.append('fileRemarks', file.remarks || ''); // Individual remark per file
     });
 
     try {
@@ -409,7 +437,7 @@ function initPortalPage() {
         // Hydrate operator details back if operator
         if (sessionStorage.getItem('user_role') === 'operator') {
           const operatorDisplayName = document.getElementById('operator-display-name');
-          operatorDisplayName.value = sessionStorage.getItem('user_name');
+          if (operatorDisplayName) operatorDisplayName.value = sessionStorage.getItem('user_name');
           memberSelectHidden.value = sessionStorage.getItem('user_id');
         }
         
@@ -714,7 +742,8 @@ function renderRecords(records, showDeleteActions = false) {
           <div class="record-card-body">
             <h3 class="record-member-name" id="title-${record.id}">${record.memberName}</h3>
             <p class="record-reason">${escapeHTML(record.reason)}</p>
-            ${record.remarks ? `<p class="record-remarks">${escapeHTML(record.remarks)}</p>` : ''}
+            ${record.remarks ? `<p class="record-remarks" style="margin-top: 0.25rem;"><strong>File Note:</strong> ${escapeHTML(record.remarks)}</p>` : ''}
+            ${record.batchRemarks ? `<p class="record-remarks" style="margin-top: 0.25rem; opacity: 0.85;"><strong>Batch Note:</strong> ${escapeHTML(record.batchRemarks)}</p>` : ''}
           </div>
           <div class="record-card-footer">
             <time class="record-date" datetime="${record.uploadDate}">${formatTime(record.timestamp)}</time>

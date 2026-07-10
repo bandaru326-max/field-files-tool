@@ -193,7 +193,7 @@ app.get('/api/members', (req, res) => {
 // 3. Upload multiple files & metadata (authenticated)
 app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
   try {
-    let { memberId, type, reason, remarks } = req.body;
+    let { memberId, type, reason, remarks, fileRemarks } = req.body;
     
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -234,7 +234,20 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
       }
     }
 
-    for (const file of req.files) {
+    // Parse individual file remarks (can be string or array)
+    let fileRemarksArray = [];
+    if (fileRemarks) {
+      if (Array.isArray(fileRemarks)) {
+        fileRemarksArray = fileRemarks;
+      } else {
+        fileRemarksArray = [fileRemarks];
+      }
+    }
+
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      const customRemark = fileRemarksArray[i] || '';
+      
       const destName = `${dateStr}-${file.filename}`;
       const destPath = path.join(baseDir, 'uploads', memberId, destName);
       
@@ -256,7 +269,8 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
         filePath: `uploads/${memberId}/${destName}`,
         type: type || 'Document Screenshot',
         reason: reason || 'Not Specified',
-        remarks: remarks || '',
+        remarks: customRemark, // Specific File remark
+        batchRemarks: remarks || '', // Global Batch remarks
         uploadDate: dateStr,
         timestamp: Date.now(),
         size: file.size
