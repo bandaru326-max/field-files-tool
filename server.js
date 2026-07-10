@@ -173,6 +173,17 @@ app.get('/uploads/:memberId/:filename', async (req, res) => {
   }
 });
 
+// Diagnostics route to check storage configuration status
+app.get('/api/storage-status', (req, res) => {
+  res.json({
+    supabaseActive: isSupabaseConfigured,
+    localFallbackActive: !isSupabaseConfigured,
+    message: isSupabaseConfigured 
+      ? 'Database & storage are fully running on Supabase Cloud!' 
+      : 'Supabase credentials not found in environment. Running in Local Fallback Mode.'
+  });
+});
+
 // Serve uploaded files statically for fallback/development
 app.use('/uploads', express.static(path.join(baseDir, 'uploads')));
 
