@@ -187,6 +187,14 @@ function initPortalPage() {
     uploadContainer.style.display = 'block';
 
     const adminDropdownWrapper = document.getElementById('admin-member-dropdown-wrapper');
+    
+    // Hydrate Welcome message above fields
+    const portalWelcomeMsg = document.getElementById('portal-welcome-msg');
+    const portalWelcomeName = document.getElementById('portal-welcome-name');
+    if (portalWelcomeMsg && portalWelcomeName) {
+      portalWelcomeName.textContent = name;
+      portalWelcomeMsg.style.display = 'block';
+    }
     const adminMemberSelect = document.getElementById('member-select');
     const operatorLockedWrapper = document.getElementById('operator-locked-wrapper');
     const operatorDisplayName = document.getElementById('operator-display-name');
