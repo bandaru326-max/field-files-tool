@@ -31,6 +31,7 @@ dirs.forEach(dirPath => {
 });
 
 const membersPath = path.join(__dirname, 'data', 'members.json');
+const adminsPath = path.join(__dirname, 'data', 'admins.json');
 const metadataPath = path.join(baseDir, 'data', 'metadata.json');
 
 // Initialize metadata file in /tmp if not exists (Vercel support)
@@ -69,9 +70,17 @@ const checkAuth = (req, res, next) => {
   }
 
   if (role === 'admin') {
-    if (token === DASHBOARD_PASSCODE) {
-      req.user = { role: 'admin', id: 'admin', name: 'Administrator' };
-      return next();
+    try {
+      if (fs.existsSync(adminsPath)) {
+        const admins = JSON.parse(fs.readFileSync(adminsPath, 'utf8'));
+        const admin = admins.find(a => a.username.toLowerCase() === userId.toLowerCase() && a.password === token);
+        if (admin) {
+          req.user = { role: 'admin', id: admin.username, name: admin.name };
+          return next();
+        }
+      }
+    } catch (e) {
+      return res.status(500).json({ error: 'Database read error' });
     }
   } else if (role === 'operator') {
     try {
@@ -102,19 +111,24 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  // Check Admin first
-  if (username.toLowerCase() === 'admin') {
-    if (password === DASHBOARD_PASSCODE) {
-      return res.json({ 
-        success: true, 
-        role: 'admin', 
-        id: 'admin', 
-        name: 'Administrator',
-        token: DASHBOARD_PASSCODE 
-      });
-    } else {
-      return res.status(401).json({ error: 'Invalid admin passcode' });
+  // Check Admins first
+  try {
+    if (fs.existsSync(adminsPath)) {
+      const admins = JSON.parse(fs.readFileSync(adminsPath, 'utf8'));
+      const admin = admins.find(a => a.username.toLowerCase() === username.toLowerCase());
+      
+      if (admin && admin.password === password) {
+        return res.json({ 
+          success: true, 
+          role: 'admin', 
+          id: admin.username, 
+          name: admin.name,
+          token: admin.password 
+        });
+      }
     }
+  } catch (err) {
+    console.error('Failed to read admin database:', err);
   }
 
   // Check Operators
