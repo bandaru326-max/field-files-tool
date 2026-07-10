@@ -44,6 +44,31 @@ if (!fs.existsSync(metadataPath)) {
   }
 }
 
+// Asynchronous, Non-Blocking, Concurrency-Safe Metadata Read/Write helpers
+let metadataWriteQueue = Promise.resolve();
+
+async function readMetadataSafe() {
+  try {
+    if (!fs.existsSync(metadataPath)) return [];
+    const content = await fs.promises.readFile(metadataPath, 'utf8');
+    return JSON.parse(content);
+  } catch (err) {
+    console.error('Error reading metadata:', err);
+    return [];
+  }
+}
+
+function writeMetadataSafe(data) {
+  metadataWriteQueue = metadataWriteQueue.then(async () => {
+    try {
+      await fs.promises.writeFile(metadataPath, JSON.stringify(data, null, 2), 'utf8');
+    } catch (err) {
+      console.error('Error writing metadata:', err);
+    }
+  });
+  return metadataWriteQueue;
+}
+
 // Initialize member folders from members.json on startup
 if (fs.existsSync(membersPath)) {
   try {
@@ -205,7 +230,7 @@ app.get('/api/members', (req, res) => {
 });
 
 // 3. Upload multiple files & metadata (authenticated)
-app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
+app.post('/api/upload', checkAuth, upload.array('files', 15), async (req, res) => {
   try {
     let { memberId, type, reason, remarks, fileRemarks } = req.body;
     
@@ -238,15 +263,8 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
     const dateStr = new Date().toISOString().split('T')[0];
     const newRecords = [];
 
-    // Load current metadata list
-    let metadata = [];
-    if (fs.existsSync(metadataPath)) {
-      try {
-        metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-      } catch (e) {
-        metadata = [];
-      }
-    }
+    // Load current metadata list safely
+    let metadata = await readMetadataSafe();
 
     // Parse individual file remarks (can be string or array)
     let fileRemarksArray = [];
@@ -294,8 +312,8 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
       newRecords.push(newRecord);
     }
 
-    // Write updated metadata
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+    // Write updated metadata safely (serialized queue)
+    await writeMetadataSafe(metadata);
 
     res.status(201).json({ success: true, records: newRecords });
   } catch (err) {
@@ -312,12 +330,9 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), (req, res) => {
 });
 
 // 4. Get uploads with search/filters (authenticated)
-app.get('/api/uploads', checkAuth, (req, res) => {
+app.get('/api/uploads', checkAuth, async (req, res) => {
   try {
-    if (!fs.existsSync(metadataPath)) {
-      return res.json([]);
-    }
-    let metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    let metadata = await readMetadataSafe();
 
     // RESTRICTION: If Operator, filter only their own uploads
     if (req.user.role === 'operator') {
@@ -361,7 +376,7 @@ app.get('/api/uploads', checkAuth, (req, res) => {
 });
 
 // 5. Delete an upload (restricted to Admin)
-app.delete('/api/uploads/:id', checkAuth, (req, res) => {
+app.delete('/api/uploads/:id', checkAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -369,12 +384,8 @@ app.delete('/api/uploads/:id', checkAuth, (req, res) => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Forbidden: Operators do not have deletion privileges' });
     }
-
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).json({ error: 'No uploads found' });
-    }
     
-    let metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    let metadata = await readMetadataSafe();
     const recordIndex = metadata.findIndex(r => r.id === id);
 
     if (recordIndex === -1) {
@@ -391,7 +402,7 @@ app.delete('/api/uploads/:id', checkAuth, (req, res) => {
 
     // Remove from metadata list
     metadata.splice(recordIndex, 1);
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+    await writeMetadataSafe(metadata);
 
     res.json({ success: true, message: 'Record deleted successfully' });
   } catch (err) {
@@ -400,7 +411,7 @@ app.delete('/api/uploads/:id', checkAuth, (req, res) => {
 });
 
 // 6. Download file (authenticated via query param or headers)
-app.get('/api/download/:id', (req, res) => {
+app.get('/api/download/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const token = req.query.token;
@@ -428,11 +439,7 @@ app.get('/api/download/:id', (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).json({ error: 'Metadata database not found' });
-    }
-
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const metadata = await readMetadataSafe();
     const record = metadata.find(r => r.id === id);
 
     if (!record) {
