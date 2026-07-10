@@ -95,11 +95,23 @@
         <!-- Upload Form -->
         <form id="upload-form" enctype="multipart/form-data">
           
-          <!-- Locked Operator Indicator -->
-          <div class="form-group">
-            <label>Operator Account</label>
-            <input type="text" id="operator-display-name" disabled style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: not-allowed;">
-            <input type="hidden" id="member-select" name="memberId"> <!-- Kept for form compatibility -->
+          <!-- Account Selection -->
+          <div class="form-group" id="operator-select-group">
+            <label>Operator Account <span>*</span></label>
+            
+            <!-- Shown only for Admin (Dropdown Selector) -->
+            <div class="select-wrapper" id="admin-member-dropdown-wrapper" style="display: none;">
+              <select id="member-select" name="memberId">
+                <option value="" disabled selected>Select operator account...</option>
+                <!-- Hydrated dynamically -->
+              </select>
+            </div>
+
+            <!-- Shown only for Operator (Locked text input) -->
+            <div id="operator-locked-wrapper" style="display: none;">
+              <input type="text" id="operator-display-name" disabled style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: not-allowed;">
+              <input type="hidden" id="member-select-hidden" name="memberId" disabled>
+            </div>
           </div>
 
           <!-- Step 2: Select Upload Type -->

@@ -12,5 +12,8 @@
   {"id": "pavan", "name": "Pavan", "username": "pavan", "password": "Lonrix@123"},
   {"id": "giridhar", "name": "Giridhar", "username": "giridhar", "password": "Lonrix@123"},
   {"id": "hussian", "name": "Hussian", "username": "hussian", "password": "Lonrix@123"},
-  {"id": "naveen", "name": "Naveen", "username": "naveen", "password": "Lonrix@123"}
+  {"id": "naveen", "name": "Naveen", "username": "naveen", "password": "Lonrix@123"},
+  {"id": "sai", "name": "Sai", "username": "sai", "password": "Lonrix@123"},
+  {"id": "praveen", "name": "Praveen", "username": "praveen", "password": "Lonrix@123"},
+  {"id": "venky", "name": "Venky", "username": "venky", "password": "Lonrix@123"}
 ]

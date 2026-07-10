@@ -129,12 +129,7 @@ function initPortalPage() {
   const userName = sessionStorage.getItem('user_name');
 
   if (role && userId) {
-    if (role === 'admin') {
-      window.location.replace('/dashboard');
-      return;
-    }
-    // Show upload form for operator
-    showOperatorUploadForm(userId, userName);
+    showPortalUploadForm(role, userId, userName);
   }
 
   // Handle Login Submission
@@ -166,11 +161,7 @@ function initPortalPage() {
 
         updateNavbar();
 
-        if (result.role === 'admin') {
-          window.location.replace('/dashboard');
-        } else {
-          showOperatorUploadForm(result.id, result.name);
-        }
+        showPortalUploadForm(result.role, result.id, result.name);
       } else {
         throw new Error(result.error || 'Login failed');
       }
@@ -187,17 +178,65 @@ function initPortalPage() {
     }
   });
 
-  function showOperatorUploadForm(id, name) {
+  async function showPortalUploadForm(role, id, name) {
     loginCard.style.display = 'none';
     uploadContainer.style.display = 'block';
-    operatorDisplayName.value = name;
-    memberSelectHidden.value = id;
-    
-    // Hide dashboard navigation link if it's rendered
-    const navDashboard = document.getElementById('nav-dashboard-link');
-    if (navDashboard) navDashboard.parentElement.style.display = 'none';
 
-    fetchOperatorHistory();
+    const adminDropdownWrapper = document.getElementById('admin-member-dropdown-wrapper');
+    const adminMemberSelect = document.getElementById('member-select');
+    const operatorLockedWrapper = document.getElementById('operator-locked-wrapper');
+    const operatorDisplayName = document.getElementById('operator-display-name');
+    const memberSelectHidden = document.getElementById('member-select-hidden');
+
+    if (role === 'admin') {
+      // Show Dropdown Selector for Admin
+      adminDropdownWrapper.style.display = 'block';
+      adminMemberSelect.disabled = false;
+      adminMemberSelect.required = true;
+      
+      // Hide and Disable Locked Input
+      operatorLockedWrapper.style.display = 'none';
+      memberSelectHidden.disabled = true;
+      memberSelectHidden.required = false;
+
+      // Populate Dropdown Choices
+      await loadPortalAdminDropdown();
+    } else {
+      // Show Locked Input for Operator
+      adminDropdownWrapper.style.display = 'none';
+      adminMemberSelect.disabled = true;
+      adminMemberSelect.required = false;
+
+      operatorLockedWrapper.style.display = 'block';
+      memberSelectHidden.disabled = false;
+      memberSelectHidden.required = true;
+      
+      operatorDisplayName.value = name;
+      memberSelectHidden.value = id;
+    }
+
+    fetchHistory();
+  }
+
+  // Load choices specifically for the Admin Dropdown
+  async function loadPortalAdminDropdown() {
+    const adminMemberSelect = document.getElementById('member-select');
+    if (!adminMemberSelect || adminMemberSelect.children.length > 1) return; // Already populated
+
+    try {
+      const response = await fetch('/api/members');
+      if (!response.ok) throw new Error('Failed to load members list');
+      const members = await response.json();
+      
+      members.forEach(member => {
+        const opt = document.createElement('option');
+        opt.value = member.id;
+        opt.textContent = member.name;
+        adminMemberSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   // Drag & Drop Upload Zone Listeners
@@ -294,11 +333,13 @@ function initPortalPage() {
         showAlert('success', 'File successfully uploaded to your operator folder!');
         uploadForm.reset();
         resetFileSelection();
-        // Hydrate operator details back
-        operatorDisplayName.value = sessionStorage.getItem('user_name');
-        memberSelectHidden.value = sessionStorage.getItem('user_id');
+        // Hydrate operator details back if operator
+        if (sessionStorage.getItem('user_role') === 'operator') {
+          operatorDisplayName.value = sessionStorage.getItem('user_name');
+          memberSelectHidden.value = sessionStorage.getItem('user_id');
+        }
         
-        fetchOperatorHistory(); // Refresh history list
+        fetchHistory(); // Refresh history list
       } else {
         throw new Error(result.error || 'Server rejected file upload');
       }
@@ -311,9 +352,9 @@ function initPortalPage() {
   });
 }
 
-// Load operator personal history
+// Load operator/admin personal history
 let currentRecords = [];
-async function fetchOperatorHistory() {
+async function fetchHistory() {
   const container = document.getElementById('records-container');
   if (!container) return;
 
@@ -333,7 +374,8 @@ async function fetchOperatorHistory() {
 
     document.getElementById('results-count').textContent = currentRecords.length;
 
-    renderRecords(currentRecords, false); // false = hide delete buttons for operators
+    const role = sessionStorage.getItem('user_role');
+    renderRecords(currentRecords, role === 'admin'); // Admin has delete rights on history cards
   } catch (err) {
     console.error(err);
     container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Unable to load your upload history.</p>`;
