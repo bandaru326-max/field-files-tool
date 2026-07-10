@@ -59,7 +59,7 @@ function updateNavbar() {
     `;
   } else {
     navHtml = `
-      <li><a href="/upload" class="active">Member Portal</a></li>
+      <li><a href="/upload" class="active">LONRIX Portal</a></li>
     `;
   }
 
