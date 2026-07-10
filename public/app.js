@@ -42,18 +42,12 @@ function updateNavbar() {
 
   if (role === 'admin') {
     navHtml = `
-      <li style="margin-right: auto; padding-left: 1rem; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">
-        Welcome, <span style="color: var(--accent-cyan);">${userName}</span>
-      </li>
       <li><a href="/upload" id="nav-upload-link">Upload Files</a></li>
       <li><a href="/dashboard" id="nav-dashboard-link">Dashboard</a></li>
       <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
     `;
   } else if (role === 'operator') {
     navHtml = `
-      <li style="margin-right: auto; padding-left: 1rem; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">
-        Welcome, <span style="color: var(--accent-cyan);">${userName}</span>
-      </li>
       <li><a href="/upload" class="active" id="nav-upload-link">Upload Files</a></li>
       <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
     `;
