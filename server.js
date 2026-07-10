@@ -58,13 +58,35 @@ if (fs.existsSync(membersPath)) {
   }
 }
 
-// Middleware to verify dashboard passcode header
-const checkDashboardAuth = (req, res, next) => {
-  const code = req.headers['x-dashboard-passcode'];
-  if (code !== DASHBOARD_PASSCODE) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid passcode' });
+// Unified Authentication & Session Middleware
+const checkAuth = (req, res, next) => {
+  const role = req.headers['x-user-role'];
+  const userId = req.headers['x-user-id'];
+  const token = req.headers['x-auth-token'];
+
+  if (!role || !token) {
+    return res.status(401).json({ error: 'Unauthorized: No credentials provided' });
   }
-  next();
+
+  if (role === 'admin') {
+    if (token === DASHBOARD_PASSCODE) {
+      req.user = { role: 'admin', id: 'admin', name: 'Administrator' };
+      return next();
+    }
+  } else if (role === 'operator') {
+    try {
+      const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
+      const member = members.find(m => m.id === userId && m.password === token);
+      if (member) {
+        req.user = { role: 'operator', id: member.id, name: member.name };
+        return next();
+      }
+    } catch (e) {
+      return res.status(500).json({ error: 'Database read error' });
+    }
+  }
+  
+  return res.status(401).json({ error: 'Unauthorized: Session expired or invalid passcode' });
 };
 
 // Serve static frontend files
@@ -72,13 +94,48 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve uploaded files statically for download/preview
 app.use('/uploads', express.static(path.join(baseDir, 'uploads')));
 
-// Verify Passcode API Endpoint
-app.post('/api/verify-password', (req, res) => {
-  const { passcode } = req.body;
-  if (passcode === DASHBOARD_PASSCODE) {
-    return res.json({ success: true });
+// 1. Verify Login Credentials API
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
   }
-  res.status(401).json({ error: 'Invalid security passcode' });
+
+  // Check Admin first
+  if (username.toLowerCase() === 'admin') {
+    if (password === DASHBOARD_PASSCODE) {
+      return res.json({ 
+        success: true, 
+        role: 'admin', 
+        id: 'admin', 
+        name: 'Administrator',
+        token: DASHBOARD_PASSCODE 
+      });
+    } else {
+      return res.status(401).json({ error: 'Invalid admin passcode' });
+    }
+  }
+
+  // Check Operators
+  try {
+    const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
+    const member = members.find(m => m.username.toLowerCase() === username.toLowerCase());
+    
+    if (member && member.password === password) {
+      return res.json({
+        success: true,
+        role: 'operator',
+        id: member.id,
+        name: member.name,
+        token: member.password
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to read user database' });
+  }
+
+  res.status(401).json({ error: 'Invalid username or password' });
 });
 
 // Multer Storage Configuration (Uploads initially to temp, then moved)
@@ -104,26 +161,33 @@ const upload = multer({
 
 // API Routes
 
-// 1. Get all members
+// 2. Get all members list (useful for dropdowns)
 app.get('/api/members', (req, res) => {
   try {
     if (!fs.existsSync(membersPath)) {
       return res.status(404).json({ error: 'Members configuration not found' });
     }
+    // Return only names and IDs (exclude passwords/usernames for security)
     const members = JSON.parse(fs.readFileSync(membersPath, 'utf8'));
-    res.json(members);
+    const safeMembers = members.map(m => ({ id: m.id, name: m.name }));
+    res.json(safeMembers);
   } catch (err) {
     res.status(500).json({ error: 'Failed to read members list' });
   }
 });
 
-// 2. Upload file & metadata
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// 3. Upload file & metadata (authenticated)
+app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
   try {
-    const { memberId, type, reason, remarks } = req.body;
+    let { memberId, type, reason, remarks } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Force Operator to upload ONLY to their own folder
+    if (req.user.role === 'operator') {
+      memberId = req.user.id;
     }
 
     if (!memberId) {
@@ -190,18 +254,23 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   }
 });
 
-// 3. Get all uploads with search/filters
-app.get('/api/uploads', checkDashboardAuth, (req, res) => {
+// 4. Get uploads with search/filters (authenticated)
+app.get('/api/uploads', checkAuth, (req, res) => {
   try {
     if (!fs.existsSync(metadataPath)) {
       return res.json([]);
     }
     let metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
 
+    // RESTRICTION: If Operator, filter only their own uploads
+    if (req.user.role === 'operator') {
+      metadata = metadata.filter(r => r.memberId === req.user.id);
+    }
+
     const { search, memberId, startDate, endDate, type, remarks } = req.query;
 
-    // Apply filtering
-    if (memberId) {
+    // Apply filtering (Only allowed for Admin, or within Operator's restricted set)
+    if (memberId && req.user.role === 'admin') {
       metadata = metadata.filter(r => r.memberId === memberId);
     }
 
@@ -238,10 +307,16 @@ app.get('/api/uploads', checkDashboardAuth, (req, res) => {
   }
 });
 
-// 4. Delete an upload
-app.delete('/api/uploads/:id', checkDashboardAuth, (req, res) => {
+// 5. Delete an upload (restricted to Admin)
+app.delete('/api/uploads/:id', checkAuth, (req, res) => {
   try {
     const { id } = req.params;
+
+    // Reject operators trying to delete records
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Operators do not have deletion privileges' });
+    }
+
     if (!fs.existsSync(metadataPath)) {
       return res.status(404).json({ error: 'No uploads found' });
     }
@@ -271,7 +346,7 @@ app.delete('/api/uploads/:id', checkDashboardAuth, (req, res) => {
   }
 });
 
-// Serve frontend HTML pages (Optional routing rewrite for SEO-friendly URLs)
+// Serve frontend HTML pages (SPA Router Fallback)
 app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -284,7 +359,7 @@ app.get('/dashboard', (req, res) => {
 app.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(`Server started successfully on port ${PORT}`);
-  console.log(`Upload Portal: http://localhost:${PORT}/upload`);
+  console.log(`Portal Web:    http://localhost:${PORT}/upload`);
   console.log(`Dashboard:     http://localhost:${PORT}/dashboard`);
   console.log(`==================================================`);
 });

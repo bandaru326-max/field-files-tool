@@ -12,24 +12,15 @@
 
   <!-- Favicon / Styling -->
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Instant Redirect if not logged in as Admin -->
+  <script>
+    if (sessionStorage.getItem('user_role') !== 'admin') {
+      window.location.replace('/upload');
+    }
+  </script>
 </head>
 <body>
-
-  <!-- Security Lock Overlay -->
-  <div class="lock-screen-overlay" id="dashboard-lock-screen">
-    <div class="lock-card">
-      <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(var(--shadow-glow));">🔒</div>
-      <h2>Dashboard Locked</h2>
-      <p>Enter the administrator passcode to access member files.</p>
-      
-      <div id="lock-error-msg" style="color: var(--error); font-size: 0.85rem; margin-bottom: 1rem; display: none; font-weight: 500;">Invalid passcode. Please try again.</div>
-      
-      <form id="lock-form" onsubmit="event.preventDefault();">
-        <input type="password" id="lock-passcode" class="lock-input" placeholder="••••" required autofocus>
-        <button type="submit" class="btn-primary" id="lock-submit-btn">Unlock Dashboard</button>
-      </form>
-    </div>
-  </div>
 
   <!-- Header Navigation -->
   <header>
@@ -42,6 +33,7 @@
         <ul class="nav-links">
           <li><a href="/upload" id="dashboard-nav-upload">Upload Files</a></li>
           <li><a href="/dashboard" class="active" id="dashboard-nav-dashboard">Dashboard</a></li>
+          <li><a href="#" id="dashboard-nav-logout" onclick="sessionStorage.clear(); window.location.replace('/upload'); event.preventDefault();" style="color: var(--error);">Logout</a></li>
         </ul>
       </nav>
     </div>

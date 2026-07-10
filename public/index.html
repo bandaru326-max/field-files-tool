@@ -5,23 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <!-- Primary SEO Meta Tags -->
-  <title>Upload Portal | Secure Member Transaction & File Share</title>
-  <meta name="description" content="Securely upload PhonePe transactions, screenshots, records, and photographs to your dedicated member folder. Includes reason tracking and notes.">
-  <meta name="keywords" content="member portal, upload transaction, PhonePe screenshot, secure file sharing, photo upload, member records">
+  <title>Portal Login & File Upload | Secure Member Share</title>
+  <meta name="description" content="Securely upload transaction screenshots, records, and photographs. Log in with your Operator credentials to manage your folder.">
+  <meta name="keywords" content="member portal, upload transaction, PhonePe screenshot, secure file sharing, operator portal, document upload">
   <meta name="robots" content="index, follow">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="http://localhost:3000/upload">
-  <meta property="og:title" content="Upload Portal | Secure Member Transaction & File Share">
-  <meta property="og:description" content="Upload transaction records, screenshots, and photos easily. Organize and search uploads date-wise.">
-  <meta property="og:image" content="/assets/og-image.png">
-
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="http://localhost:3000/upload">
-  <meta property="twitter:title" content="Upload Portal | Secure Member Transaction & File Share">
-  <meta property="twitter:description" content="Upload transaction records, screenshots, and photos easily. Organize and search uploads date-wise.">
+  <meta property="og:title" content="Portal Login & File Upload | Secure Member Share">
+  <meta property="og:description" content="Access your personalized operator folder. Upload screenshots and receipts securely.">
   
   <!-- Favicon / Styling -->
   <link rel="stylesheet" href="style.css">
@@ -31,14 +24,8 @@
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "Member File Portal",
-    "url": "http://localhost:3000/",
-    "description": "Secure file sharing and transaction records database for 20 members.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "http://localhost:3000/dashboard?search={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
+    "name": "Operator File Sharing Portal",
+    "url": "http://localhost:3000/"
   }
   </script>
 </head>
@@ -52,9 +39,8 @@
         <span class="logo-text">MemberPortal</span>
       </a>
       <nav aria-label="Main Navigation">
-        <ul class="nav-links">
-          <li><a href="/upload" class="active" id="nav-upload-link">Upload Files</a></li>
-          <li><a href="/dashboard" id="nav-dashboard-link">Dashboard</a></li>
+        <ul class="nav-links" id="nav-links-list">
+          <!-- Hydrated dynamically based on login state -->
         </ul>
       </nav>
     </div>
@@ -62,105 +48,142 @@
 
   <!-- Hero Section -->
   <section class="hero" aria-labelledby="main-heading">
-    <h1 id="main-heading">Secure Document & Transaction Upload</h1>
-    <p>Upload your PhonePe payment screenshots, receipts, or document screenshots. Your files will be categorized and filed instantly under your personal folder.</p>
+    <h1 id="main-heading" style="font-size: 2.75rem;">Operator Portal</h1>
+    <p id="hero-subtext">Access your personal operator account to upload receipts and screenshots. Your uploads are secured and isolated from other users.</p>
   </section>
 
-  <!-- Main Upload Area -->
-  <main>
-    <div class="form-card">
-      <!-- Status Messages -->
-      <div id="alert-box" class="alert" role="alert" aria-live="polite">
-        <span id="alert-icon"></span>
-        <span id="alert-message"></span>
+  <!-- Main Area -->
+  <main style="padding-bottom: 5rem;">
+    
+    <!-- 1. LOGIN CONTAINER -->
+    <div class="form-card" id="login-card" style="max-width: 450px; margin: 2rem auto;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(var(--shadow-glow));">🔑</div>
+        <h2 style="font-size: 1.5rem;">Account Sign In</h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Enter your Operator ID or Admin credentials</p>
       </div>
 
-      <!-- Upload Form -->
-      <form id="upload-form" enctype="multipart/form-data">
-        
-        <!-- Step 1: Select Member -->
+      <div id="login-error-msg" class="alert alert-error" style="display: none; margin-bottom: 1.5rem; padding: 0.75rem 1rem; font-size: 0.9rem;" role="alert">
+        <span id="login-error-icon">❌</span>
+        <span id="login-error-text">Invalid username or password</span>
+      </div>
+
+      <form id="login-form">
         <div class="form-group">
-          <label for="member-select">Select Member Account <span>*</span></label>
-          <div class="select-wrapper">
-            <select id="member-select" name="memberId" required>
-              <option value="" disabled selected>Choose your name from the list...</option>
-              <!-- Hydrated dynamically via JavaScript -->
-            </select>
-          </div>
+          <label for="login-username">User ID (First Name)</label>
+          <input type="text" id="login-username" placeholder="e.g. avinash" required autocomplete="username" style="letter-spacing: 0.05em;">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" style="letter-spacing: 0.05em;">
+        </div>
+        <button type="submit" class="btn-primary" id="login-submit-btn" style="margin-top: 1.75rem; font-size: 1rem; padding: 0.85rem;">
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <!-- 2. UPLOAD PORTAL CONTAINER (Hidden by default) -->
+    <div id="upload-container" style="display: none;">
+      <div class="form-card" style="max-width: 650px; margin: 2rem auto;">
+        <!-- Status Messages -->
+        <div id="alert-box" class="alert" role="alert" aria-live="polite">
+          <span id="alert-icon"></span>
+          <span id="alert-message"></span>
         </div>
 
-        <!-- Step 2: Select Upload Type -->
-        <div class="form-group">
-          <label>Upload Type <span>*</span></label>
-          <div class="upload-types-grid">
-            <div>
-              <input type="radio" id="type-screenshot" name="type" value="PhonePe Screenshot" checked class="type-radio">
-              <label for="type-screenshot" class="type-label">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                PhonePe Record
-              </label>
-            </div>
-            <div>
-              <input type="radio" id="type-document" name="type" value="Document Screenshot" class="type-radio">
-              <label for="type-document" class="type-label">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                Document Screenshot
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3: Drag & Drop File Upload -->
-        <div class="form-group">
-          <label id="file-drop-label">Choose File <span>*</span></label>
+        <!-- Upload Form -->
+        <form id="upload-form" enctype="multipart/form-data">
           
-          <div class="upload-zone" id="upload-zone" aria-labelledby="file-drop-label">
-            <div class="upload-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            </div>
-            <p>Drag and drop your file here, or <span style="color: var(--accent-cyan); font-weight: 500;">browse computer</span></p>
-            <p class="file-requirements">Supports JPG, PNG, PDF & HEIC (Max 10MB)</p>
-            <input type="file" id="file-input" name="file" class="file-input" accept="image/*,application/pdf" required>
+          <!-- Locked Operator Indicator -->
+          <div class="form-group">
+            <label>Operator Account</label>
+            <input type="text" id="operator-display-name" disabled style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: not-allowed;">
+            <input type="hidden" id="member-select" name="memberId"> <!-- Kept for form compatibility -->
           </div>
 
-          <!-- Selected File Box -->
-          <div class="selected-file-box" id="file-preview-box">
-            <div class="file-info">
-              <div class="file-thumb" id="file-thumb">📁</div>
+          <!-- Step 2: Select Upload Type -->
+          <div class="form-group">
+            <label>Upload Type <span>*</span></label>
+            <div class="upload-types-grid">
               <div>
-                <div class="file-name-text" id="file-name">filename.png</div>
-                <div class="file-size-text" id="file-size">1.2 MB</div>
+                <input type="radio" id="type-screenshot" name="type" value="PhonePe Screenshot" checked class="type-radio">
+                <label for="type-screenshot" class="type-label">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                  PhonePe Record
+                </label>
+              </div>
+              <div>
+                <input type="radio" id="type-document" name="type" value="Document Screenshot" class="type-radio">
+                <label for="type-document" class="type-label">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Document Screenshot
+                </label>
               </div>
             </div>
-            <button type="button" class="remove-file-btn" id="remove-file-btn" aria-label="Remove selected file">&times;</button>
           </div>
+
+          <!-- Step 3: Drag & Drop File Upload -->
+          <div class="form-group">
+            <label id="file-drop-label">Choose File <span>*</span></label>
+            
+            <div class="upload-zone" id="upload-zone" aria-labelledby="file-drop-label">
+              <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <p>Drag and drop your file here, or <span style="color: var(--accent-cyan); font-weight: 500;">browse computer</span></p>
+              <p class="file-requirements">Supports JPG, PNG, PDF & HEIC (Max 10MB)</p>
+              <input type="file" id="file-input" name="file" class="file-input" accept="image/*,application/pdf" required>
+            </div>
+
+            <!-- Selected File Box -->
+            <div class="selected-file-box" id="file-preview-box">
+              <div class="file-info">
+                <div class="file-thumb" id="file-thumb">📁</div>
+                <div>
+                  <div class="file-name-text" id="file-name">filename.png</div>
+                  <div class="file-size-text" id="file-size">1.2 MB</div>
+                </div>
+              </div>
+              <button type="button" class="remove-file-btn" id="remove-file-btn" aria-label="Remove selected file">&times;</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Reason for Upload -->
+          <div class="form-group">
+            <label for="reason-input">Reason for Upload <span>*</span></label>
+            <input type="text" id="reason-input" name="reason" placeholder="e.g. Monthly weekly upload, transaction proof" required>
+          </div>
+
+          <!-- Step 5: Remarks / Notes -->
+          <div class="form-group">
+            <label for="remarks-input">Remarks / Additional Notes (Optional)</label>
+            <textarea id="remarks-input" name="remarks" placeholder="Enter reference numbers or transaction IDs..."></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-primary" id="submit-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Upload Securely
+          </button>
+        </form>
+      </div>
+
+      <!-- Operator Personal Upload History -->
+      <section class="content-panel" style="max-width: 650px; margin: 3rem auto;" aria-label="Upload History">
+        <div class="section-header" style="margin-bottom: 1.5rem;">
+          <h2 class="section-title">Your Upload History (<span id="results-count">0</span>)</h2>
         </div>
-
-        <!-- Step 4: Reason for Upload -->
-        <div class="form-group">
-          <label for="reason-input">Reason for Upload <span>*</span></label>
-          <input type="text" id="reason-input" name="reason" placeholder="e.g. Paid weekly maintenance fees, Photo of event banner" required>
+        <div id="records-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Loaded dynamically via app.js -->
         </div>
-
-        <!-- Step 5: Remarks / Notes -->
-        <div class="form-group">
-          <label for="remarks-input">Remarks / Additional Notes (Optional)</label>
-          <textarea id="remarks-input" name="remarks" placeholder="Enter any extra details, reference numbers, or transaction IDs..."></textarea>
-        </div>
-
-        <!-- Submit Button -->
-        <button type="submit" class="btn-primary" id="submit-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          Upload Securely
-        </button>
-
-      </form>
+      </section>
     </div>
   </main>
 
   <!-- SEO Footer -->
   <footer style="text-align: center; color: var(--text-muted); padding: 2rem 0; font-size: 0.85rem; border-top: 1px solid var(--glass-border);">
-    <div class="max-width: 1200px; margin: 0 auto;">
+    <div style="max-width: 1200px; margin: 0 auto;">
       <p>&copy; 2026 MemberPortal. Securely structured and optimized for search engine crawlability.</p>
     </div>
   </footer>

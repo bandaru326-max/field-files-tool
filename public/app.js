@@ -1,56 +1,78 @@
 /**
  * Member File Sharing Portal - Client Logic
- * Coordinating uploads, statistics, filters, and modals.
+ * Handles Authentication, locked views, live updates, and data management.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Common Initialization
-  loadMembers();
+  // Check Login State and Route accordingly
+  updateNavbar();
 
-  // Detect Current Page
+  const loginForm = document.getElementById('login-form');
   const uploadForm = document.getElementById('upload-form');
   const recordsContainer = document.getElementById('records-container');
 
-  if (uploadForm) {
-    initUploadPage();
+  // Page Routing Logic
+  if (loginForm && uploadForm) {
+    initPortalPage();
   }
 
-  if (recordsContainer) {
+  if (recordsContainer && !uploadForm) {
     initDashboardPage();
   }
 });
 
-// Dynamic Member Loader
-async function loadMembers() {
-  try {
-    const response = await fetch('/api/members');
-    if (!response.ok) throw new Error('Failed to fetch members');
-    const members = await response.json();
-    
-    // Populate Upload Select
-    const memberSelect = document.getElementById('member-select');
-    if (memberSelect) {
-      members.forEach(member => {
-        const opt = document.createElement('option');
-        opt.value = member.id;
-        opt.textContent = member.name;
-        memberSelect.appendChild(opt);
-      });
-    }
+// Helper: Get auth headers for Fetch requests
+function getAuthHeaders() {
+  return {
+    'x-user-role': sessionStorage.getItem('user_role') || '',
+    'x-user-id': sessionStorage.getItem('user_id') || '',
+    'x-auth-token': sessionStorage.getItem('auth_token') || ''
+  };
+}
 
-    // Populate Dashboard Filter Select
-    const filterMember = document.getElementById('filter-member');
-    if (filterMember) {
-      members.forEach(member => {
-        const opt = document.createElement('option');
-        opt.value = member.id;
-        opt.textContent = member.name;
-        filterMember.appendChild(opt);
-      });
-    }
-  } catch (err) {
-    console.error('Error loading member names list:', err);
-    showAlert('error', 'Error initializing member database. Please check your server connection.');
+// Update Header Navigation dynamically based on session role
+function updateNavbar() {
+  const navList = document.getElementById('nav-links-list');
+  if (!navList) return;
+
+  const role = sessionStorage.getItem('user_role');
+  const userName = sessionStorage.getItem('user_name');
+
+  let navHtml = '';
+
+  if (role === 'admin') {
+    navHtml = `
+      <li style="margin-right: auto; padding-left: 1rem; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">
+        Welcome, <span style="color: var(--accent-cyan);">${userName}</span>
+      </li>
+      <li><a href="/upload" id="nav-upload-link">Upload Files</a></li>
+      <li><a href="/dashboard" id="nav-dashboard-link">Dashboard</a></li>
+      <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
+    `;
+  } else if (role === 'operator') {
+    navHtml = `
+      <li style="margin-right: auto; padding-left: 1rem; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">
+        Welcome, <span style="color: var(--accent-cyan);">${userName}</span>
+      </li>
+      <li><a href="/upload" class="active" id="nav-upload-link">Upload Files</a></li>
+      <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
+    `;
+  } else {
+    navHtml = `
+      <li><a href="/upload" class="active">Member Portal</a></li>
+    `;
+  }
+
+  navList.innerHTML = navHtml;
+
+  // Bind Logout Button
+  const logoutBtn = document.getElementById('nav-logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.clear();
+      window.location.replace('/upload');
+    });
   }
 }
 
@@ -72,15 +94,26 @@ function showAlert(type, message) {
   }
   
   alertBox.style.display = 'flex';
-  
-  // Smooth scroll to alert
   alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ----------------------------------------------------
-// UPLOAD PAGE IMPLEMENTATION
+// PORTAL PAGE IMPLEMENTATION (LOGIN + UPLOAD FORM)
 // ----------------------------------------------------
-function initUploadPage() {
+function initPortalPage() {
+  const loginCard = document.getElementById('login-card');
+  const loginForm = document.getElementById('login-form');
+  const loginUsername = document.getElementById('login-username');
+  const loginPassword = document.getElementById('login-password');
+  const loginErrorMsg = document.getElementById('login-error-msg');
+  const loginErrorText = document.getElementById('login-error-text');
+  const loginSubmitBtn = document.getElementById('login-submit-btn');
+
+  const uploadContainer = document.getElementById('upload-container');
+  const uploadForm = document.getElementById('upload-form');
+  const operatorDisplayName = document.getElementById('operator-display-name');
+  const memberSelectHidden = document.getElementById('member-select');
+
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
   const filePreviewBox = document.getElementById('file-preview-box');
@@ -88,10 +121,86 @@ function initUploadPage() {
   const fileName = document.getElementById('file-name');
   const fileSize = document.getElementById('file-size');
   const removeFileBtn = document.getElementById('remove-file-btn');
-  const uploadForm = document.getElementById('upload-form');
   const submitBtn = document.getElementById('submit-btn');
 
-  // Drag & Drop Listeners
+  // check if session already exists
+  const role = sessionStorage.getItem('user_role');
+  const userId = sessionStorage.getItem('user_id');
+  const userName = sessionStorage.getItem('user_name');
+
+  if (role && userId) {
+    if (role === 'admin') {
+      window.location.replace('/dashboard');
+      return;
+    }
+    // Show upload form for operator
+    showOperatorUploadForm(userId, userName);
+  }
+
+  // Handle Login Submission
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    loginSubmitBtn.disabled = true;
+    loginSubmitBtn.textContent = 'Signing In...';
+    loginErrorMsg.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: loginUsername.value.trim(),
+          password: loginPassword.value
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Store Session
+        sessionStorage.setItem('user_role', result.role);
+        sessionStorage.setItem('user_id', result.id);
+        sessionStorage.setItem('user_name', result.name);
+        sessionStorage.setItem('auth_token', result.token);
+
+        updateNavbar();
+
+        if (result.role === 'admin') {
+          window.location.replace('/dashboard');
+        } else {
+          showOperatorUploadForm(result.id, result.name);
+        }
+      } else {
+        throw new Error(result.error || 'Login failed');
+      }
+    } catch (err) {
+      loginErrorText.textContent = err.message;
+      loginErrorMsg.style.display = 'flex';
+      loginCard.classList.add('shake');
+      setTimeout(() => loginCard.classList.remove('shake'), 400);
+      loginPassword.value = '';
+      loginPassword.focus();
+    } finally {
+      loginSubmitBtn.disabled = false;
+      loginSubmitBtn.textContent = 'Sign In';
+    }
+  });
+
+  function showOperatorUploadForm(id, name) {
+    loginCard.style.display = 'none';
+    uploadContainer.style.display = 'block';
+    operatorDisplayName.value = name;
+    memberSelectHidden.value = id;
+    
+    // Hide dashboard navigation link if it's rendered
+    const navDashboard = document.getElementById('nav-dashboard-link');
+    if (navDashboard) navDashboard.parentElement.style.display = 'none';
+
+    fetchOperatorHistory();
+  }
+
+  // Drag & Drop Upload Zone Listeners
   ['dragenter', 'dragover'].forEach(eventName => {
     uploadZone.addEventListener(eventName, (e) => {
       e.preventDefault();
@@ -115,7 +224,6 @@ function initUploadPage() {
     }
   });
 
-  // Clicking upload zone trigger file explorer
   uploadZone.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
@@ -125,7 +233,7 @@ function initUploadPage() {
   });
 
   removeFileBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Avoid triggering uploadZone click
+    e.stopPropagation();
     resetFileSelection();
   });
 
@@ -139,20 +247,17 @@ function initUploadPage() {
     fileName.textContent = file.name;
     fileSize.textContent = formatBytes(file.size);
     
-    // Thumbnail Preview if Image
     if (file.type.startsWith('image/')) {
       const fileUrl = URL.createObjectURL(file);
       fileThumb.style.backgroundImage = `url('${fileUrl}')`;
       fileThumb.textContent = '';
-      
-      // Release memory on unbind
       fileThumb.onload = () => URL.revokeObjectURL(fileUrl);
     } else if (file.type === 'application/pdf') {
       fileThumb.style.backgroundImage = 'none';
-      fileThumb.textContent = '📕'; // PDF Emoji
+      fileThumb.textContent = '📕';
     } else {
       fileThumb.style.backgroundImage = 'none';
-      fileThumb.textContent = '📄'; // General file emoji
+      fileThumb.textContent = '📄';
     }
 
     uploadZone.style.display = 'none';
@@ -169,28 +274,31 @@ function initUploadPage() {
   uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Check validation
     if (!uploadForm.checkValidity()) return;
 
     const formData = new FormData(uploadForm);
-    
-    // Update UI state to loading
     submitBtn.disabled = true;
     const origBtnContent = submitBtn.innerHTML;
-    submitBtn.innerHTML = `<span class="spinner" style="border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;"></span> Uploading...`;
+    submitBtn.innerHTML = `Uploading...`;
 
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: getAuthHeaders(),
         body: formData
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        showAlert('success', 'File uploaded and saved under member folder successfully!');
+        showAlert('success', 'File successfully uploaded to your operator folder!');
         uploadForm.reset();
         resetFileSelection();
+        // Hydrate operator details back
+        operatorDisplayName.value = sessionStorage.getItem('user_name');
+        memberSelectHidden.value = sessionStorage.getItem('user_id');
+        
+        fetchOperatorHistory(); // Refresh history list
       } else {
         throw new Error(result.error || 'Server rejected file upload');
       }
@@ -203,10 +311,38 @@ function initUploadPage() {
   });
 }
 
-// ----------------------------------------------------
-// DASHBOARD PAGE IMPLEMENTATION
-// ----------------------------------------------------
+// Load operator personal history
 let currentRecords = [];
+async function fetchOperatorHistory() {
+  const container = document.getElementById('records-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/uploads', {
+      headers: getAuthHeaders()
+    });
+
+    if (res.status === 401) {
+      sessionStorage.clear();
+      window.location.replace('/upload');
+      return;
+    }
+
+    if (!res.ok) throw new Error('Failed to load uploads');
+    currentRecords = await res.json();
+
+    document.getElementById('results-count').textContent = currentRecords.length;
+
+    renderRecords(currentRecords, false); // false = hide delete buttons for operators
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Unable to load your upload history.</p>`;
+  }
+}
+
+// ----------------------------------------------------
+// ADMIN DASHBOARD PAGE IMPLEMENTATION
+// ----------------------------------------------------
 let recordToDeleteId = null;
 
 function initDashboardPage() {
@@ -227,83 +363,32 @@ function initDashboardPage() {
   const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
   const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
-  // Security Lock Nodes
-  const lockScreen = document.getElementById('dashboard-lock-screen');
-  const lockForm = document.getElementById('lock-form');
-  const lockPasscode = document.getElementById('lock-passcode');
-  const lockErrorMsg = document.getElementById('lock-error-msg');
-  const lockSubmitBtn = document.getElementById('lock-submit-btn');
+  // Initial Load
+  loadDashboardMembers();
+  fetchDashboardUploads();
 
-  // Check if session passcode is already stored
-  const savedPasscode = sessionStorage.getItem('dashboard_passcode');
-  if (savedPasscode) {
-    lockScreen.classList.add('unlocked');
-    fetchUploads();
-    setInterval(fetchUploads, 5000);
-  } else {
-    // Clear loading indicator while locked
-    const container = document.getElementById('records-container');
-    if (container) container.innerHTML = '';
-  }
-
-  // Handle Unlock Submit
-  lockForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const val = lockPasscode.value;
-    
-    lockSubmitBtn.disabled = true;
-    lockSubmitBtn.textContent = 'Verifying...';
-    lockErrorMsg.style.display = 'none';
-
-    try {
-      const res = await fetch('/api/verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: val })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        sessionStorage.setItem('dashboard_passcode', val);
-        lockScreen.classList.add('unlocked');
-        fetchUploads();
-        setInterval(fetchUploads, 5000);
-      } else {
-        throw new Error(data.error || 'Invalid passcode');
-      }
-    } catch (err) {
-      lockErrorMsg.style.display = 'block';
-      const card = lockScreen.querySelector('.lock-card');
-      card.classList.add('shake');
-      setTimeout(() => card.classList.remove('shake'), 400);
-      lockPasscode.value = '';
-      lockPasscode.focus();
-    } finally {
-      lockSubmitBtn.disabled = false;
-      lockSubmitBtn.textContent = 'Unlock Dashboard';
-    }
-  });
+  // Set up live polling
+  setInterval(fetchDashboardUploads, 5000);
 
   // Search Input Debouncing
   let debounceTimeout;
   searchInput.addEventListener('input', () => {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
-      fetchUploads();
+      fetchDashboardUploads();
     }, 300);
   });
 
   remarksInput.addEventListener('input', () => {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
-      fetchUploads();
+      fetchDashboardUploads();
     }, 300);
   });
 
   // Filter Listeners
   [filterMember, filterStartDate, filterEndDate, filterType].forEach(elem => {
-    elem.addEventListener('change', fetchUploads);
+    elem.addEventListener('change', fetchDashboardUploads);
   });
 
   // Download Filtered Action
@@ -314,11 +399,10 @@ function initDashboardPage() {
       return;
     }
     
-    // Trigger download for each link sequentially
     downloadLinks.forEach((link, idx) => {
       setTimeout(() => {
         link.click();
-      }, idx * 250); // 250ms spacing is extremely robust and bypasses browser download protection
+      }, idx * 250);
     });
   });
 
@@ -327,14 +411,12 @@ function initDashboardPage() {
     btn.addEventListener('click', closeAllModals);
   });
 
-  // Close modals clicking outside
   window.addEventListener('click', (e) => {
     if (e.target === previewModal || e.target === deleteModal) {
       closeAllModals();
     }
   });
 
-  // Escape key closes modals
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeAllModals();
@@ -344,18 +426,16 @@ function initDashboardPage() {
   // Delete Action Confirm
   confirmDeleteBtn.addEventListener('click', async () => {
     if (!recordToDeleteId) return;
-    const passcode = sessionStorage.getItem('dashboard_passcode') || '';
 
     try {
       const res = await fetch(`/api/uploads/${recordToDeleteId}`, {
         method: 'DELETE',
-        headers: { 'x-dashboard-passcode': passcode }
+        headers: getAuthHeaders()
       });
       
       if (res.status === 401) {
-        sessionStorage.removeItem('dashboard_passcode');
-        document.getElementById('dashboard-lock-screen').classList.remove('unlocked');
-        closeAllModals();
+        sessionStorage.clear();
+        window.location.replace('/upload');
         return;
       }
 
@@ -363,7 +443,7 @@ function initDashboardPage() {
 
       if (res.ok) {
         closeAllModals();
-        fetchUploads(); // Reload list
+        fetchDashboardUploads(); // Reload list
       } else {
         alert('Failed to delete file: ' + result.error);
       }
@@ -374,15 +454,32 @@ function initDashboardPage() {
   });
 }
 
-// Retrieve records from Express server
-async function fetchUploads() {
+// Load operator choices inside filter panel
+async function loadDashboardMembers() {
+  try {
+    const response = await fetch('/api/members');
+    if (!response.ok) throw new Error('Failed to fetch members');
+    const members = await response.json();
+    
+    const filterMember = document.getElementById('filter-member');
+    if (filterMember) {
+      members.forEach(member => {
+        const opt = document.createElement('option');
+        opt.value = member.id;
+        opt.textContent = member.name;
+        filterMember.appendChild(opt);
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Retrieve records for admin view
+async function fetchDashboardUploads() {
   const recordsContainer = document.getElementById('records-container');
   if (!recordsContainer) return;
 
-  const passcode = sessionStorage.getItem('dashboard_passcode');
-  if (!passcode) return; // Silent return if not logged in yet
-
-  // Retrieve input filter states
   const search = document.getElementById('search-input').value;
   const remarks = document.getElementById('remarks-search').value;
   const memberId = document.getElementById('filter-member').value;
@@ -390,7 +487,6 @@ async function fetchUploads() {
   const endDate = document.getElementById('filter-end-date').value;
   const type = document.getElementById('filter-type').value;
 
-  // Build Query Params
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (remarks) params.append('remarks', remarks);
@@ -401,37 +497,33 @@ async function fetchUploads() {
 
   try {
     const res = await fetch(`/api/uploads?${params.toString()}`, {
-      headers: { 'x-dashboard-passcode': passcode }
+      headers: getAuthHeaders()
     });
     
     if (res.status === 401) {
-      sessionStorage.removeItem('dashboard_passcode');
-      document.getElementById('dashboard-lock-screen').classList.remove('unlocked');
+      sessionStorage.clear();
+      window.location.replace('/upload');
       return;
     }
     
     if (!res.ok) throw new Error('API fetch failed');
     currentRecords = await res.json();
 
-    // Render Stats
-    updateStatistics(currentRecords);
-
-    // Group & Render list
-    renderRecords(currentRecords);
+    updateDashboardStatistics(currentRecords);
+    renderRecords(currentRecords, true); // true = show delete buttons for admin
   } catch (err) {
-    console.error('Failed to load uploads records:', err);
+    console.error('Failed to load uploads:', err);
     recordsContainer.innerHTML = `
       <div class="empty-state" style="border-color: var(--error);">
         <div class="empty-state-icon" style="color: var(--error);">⚠️</div>
         <h3>Failed to Fetch uploads</h3>
-        <p>Could not retrieve items from database. Ensure the server is actively running.</p>
+        <p>Could not retrieve items from server.</p>
       </div>
     `;
   }
 }
 
-// Calculate Stats Dashboard Panel
-function updateStatistics(records) {
+function updateDashboardStatistics(records) {
   const totalElem = document.getElementById('stat-total');
   const screenshotElem = document.getElementById('stat-screenshots');
   const docsElem = document.getElementById('stat-documents');
@@ -452,8 +544,10 @@ function updateStatistics(records) {
   }
 }
 
-// Group records date-wise and render HTML
-function renderRecords(records) {
+// ----------------------------------------------------
+// UI RENDERING ENGINE & MODAL CONTROLS
+// ----------------------------------------------------
+function renderRecords(records, showDeleteActions = false) {
   const container = document.getElementById('records-container');
   if (!container) return;
 
@@ -462,7 +556,7 @@ function renderRecords(records) {
       <div class="empty-state">
         <div class="empty-state-icon">📂</div>
         <h3>No uploads found</h3>
-        <p>Try clearing filters or enter a different search keyword.</p>
+        <p>No records fit the search query.</p>
       </div>
     `;
     return;
@@ -480,7 +574,6 @@ function renderRecords(records) {
 
   let htmlContent = '';
 
-  // Loop through sorted groups
   Object.keys(grouped).forEach(dateLabel => {
     htmlContent += `
       <div class="date-group">
@@ -518,9 +611,11 @@ function renderRecords(records) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Download
               </a>
+              ${showDeleteActions ? `
               <button onclick="triggerDelete('${record.id}')" class="action-btn btn-delete" title="Delete record" aria-label="Delete this file record">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
               </button>
+              ` : ''}
             </div>
           </div>
         </article>
@@ -536,9 +631,6 @@ function renderRecords(records) {
   container.innerHTML = htmlContent;
 }
 
-// ----------------------------------------------------
-// UI ACTIONS / MODAL HANDLERS
-// ----------------------------------------------------
 window.openPreview = function(recordId) {
   const record = currentRecords.find(r => r.id === recordId);
   if (!record) return;
@@ -551,13 +643,11 @@ window.openPreview = function(recordId) {
   const previewRemarks = document.getElementById('preview-remarks');
   const previewFilename = document.getElementById('preview-filename');
 
-  // Populate data
   const isImg = record.filename.match(/\.(jpeg|jpg|gif|png|webp)$/i);
   if (isImg) {
     previewImage.src = '/' + record.filePath;
     previewImage.style.display = 'block';
   } else {
-    // Hide image if it's a PDF or un-renderable
     previewImage.style.display = 'none';
   }
 
@@ -575,7 +665,6 @@ window.openPreview = function(recordId) {
 
   previewFilename.textContent = record.originalName;
 
-  // Open overlay
   previewModal.classList.add('active');
   document.body.style.overflow = 'hidden';
 };
@@ -588,14 +677,16 @@ window.triggerDelete = function(recordId) {
 };
 
 function closeAllModals() {
-  document.getElementById('preview-modal').classList.remove('active');
-  document.getElementById('delete-modal').classList.remove('active');
+  const previewModal = document.getElementById('preview-modal');
+  const deleteModal = document.getElementById('delete-modal');
+  if (previewModal) previewModal.classList.remove('active');
+  if (deleteModal) deleteModal.classList.remove('active');
   document.body.style.overflow = 'auto';
   recordToDeleteId = null;
 }
 
 // ----------------------------------------------------
-// UTILITY FUNCTIONS
+// UTILITIES
 // ----------------------------------------------------
 function formatBytes(bytes, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
@@ -607,12 +698,8 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function formatDateDisplay(dateString) {
-  // Input: yyyy-mm-dd
-  // Output: July 9, 2026
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date(dateString);
-  
-  // Guard for invalid dates
   if (isNaN(date.getTime())) return dateString;
   return date.toLocaleDateString('en-US', options);
 }
