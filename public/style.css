@@ -171,7 +171,7 @@ header {
 /* Hero Section */
 .hero {
   max-width: 1200px;
-  margin: 3rem auto 2rem auto;
+  margin: 1.5rem auto 0.75rem auto;
   padding: 0 2rem;
   text-align: center;
 }
