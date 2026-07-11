@@ -734,6 +734,14 @@ function renderRecords(records, showDeleteActions = false) {
     return;
   }
 
+  // Count uploads per member
+  const memberCounts = {};
+  records.forEach(r => {
+    if (r.memberId) {
+      memberCounts[r.memberId] = (memberCounts[r.memberId] || 0) + 1;
+    }
+  });
+
   // Group by Date
   const grouped = {};
   records.forEach(record => {
@@ -786,7 +794,7 @@ function renderRecords(records, showDeleteActions = false) {
             ${!isImg ? `<div class="record-media-placeholder">${isPdf ? '📕' : '📄'}</div>` : ''}
           </div>
           <div class="record-card-body">
-            <h3 class="record-member-name" id="title-${record.id}">${record.memberName}</h3>
+            <h3 class="record-member-name" id="title-${record.id}">${record.memberName} (${memberCounts[record.memberId] || 0})</h3>
             <p class="record-reason">${escapeHTML(record.reason)}</p>
             ${record.remarks ? `<p class="record-remarks" style="margin-top: 0.25rem;"><strong>File Note:</strong> ${escapeHTML(record.remarks)}</p>` : ''}
             ${record.batchRemarks ? `<p class="record-remarks" style="margin-top: 0.25rem; opacity: 0.85;"><strong>Batch Note:</strong> ${escapeHTML(record.batchRemarks)}</p>` : ''}
