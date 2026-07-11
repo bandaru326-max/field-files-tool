@@ -449,7 +449,7 @@ function initPortalPage() {
           <button type="button" class="remove-file-btn" onclick="removeSelectedFile(${idx})" aria-label="Remove this file">&times;</button>
         </div>
         <div class="form-group" style="margin: 0; width: 100%;">
-          <input type="text" class="file-remarks-input" data-index="${idx}" placeholder="Remarks for this file (optional)..." style="width: 100%; padding: 0.65rem; background: rgba(8, 9, 14, 0.4); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); color: #fff; font-family: inherit; font-size: 0.85rem; outline: none; transition: var(--transition-normal);" value="${escapeHTML(file.remarks || '')}">
+          <input type="text" class="file-remarks-input" data-index="${idx}" placeholder="Remarks for this file (required)..." required style="width: 100%; padding: 0.65rem; background: rgba(8, 9, 14, 0.4); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); color: #fff; font-family: inherit; font-size: 0.85rem; outline: none; transition: var(--transition-normal);" value="${escapeHTML(file.remarks || '')}">
         </div>
       `;
       filePreviewBox.appendChild(fileRow);
