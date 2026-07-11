@@ -42,52 +42,6 @@
   --radius-lg: 20px;
 }
 
-[data-theme="light"] {
-  --bg-primary: #f0f2f5;
-  --bg-secondary: #ffffff;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-card: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-focus: rgba(0, 136, 204, 0.5);
-  
-  --accent-cyan: #0088cc;
-  --accent-purple: #7b1fa2;
-  --accent-gradient: linear-gradient(135deg, #0088cc 0%, #7b1fa2 100%);
-  --accent-hover-gradient: linear-gradient(135deg, #0077b3 0%, #6a1b9a 100%);
-  
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --text-muted: #718096;
-  
-  --success: #38a169;
-  --success-bg: rgba(56, 161, 105, 0.1);
-  --error: #e53e3e;
-  --error-bg: rgba(229, 62, 62, 0.1);
-  --warning: #dd6b20;
-  
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 20px rgba(0, 136, 204, 0.15);
-}
-
-[data-theme="light"] body {
-  background-image: 
-    radial-gradient(at 10% 10%, rgba(123, 31, 162, 0.04) 0px, transparent 50%),
-    radial-gradient(at 90% 90%, rgba(0, 136, 204, 0.04) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(240, 242, 245, 0.95) 0px, #f0f2f5 100%) !important;
-}
-
-[data-theme="light"] select option {
-  background-color: #ffffff;
-  color: #1a202c;
-}
-
-[data-theme="light"] .theme-toggle-btn {
-  background: rgba(0, 0, 0, 0.04) !important;
-  color: #4a5568 !important;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;

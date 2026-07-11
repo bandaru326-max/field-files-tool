@@ -19,11 +19,6 @@
   <!-- Favicon / Styling -->
   <link rel="stylesheet" href="style.css">
   
-  <script>
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  </script>
-  
   <!-- JSON-LD Structured Data Schema for SEO -->
   <script type="application/ld+json">
   {
@@ -43,13 +38,10 @@
         <div class="logo-icon">LX</div>
         <span class="logo-text">LONRIX</span>
       </a>
-      <nav aria-label="Main Navigation" style="display: flex; align-items: center; gap: 0.5rem;">
+      <nav aria-label="Main Navigation">
         <ul class="nav-links" id="nav-links-list">
           <!-- Hydrated dynamically based on login state -->
         </ul>
-        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme" style="background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); font-size: 1rem; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); outline: none; transition: var(--transition-fast); margin-left: 0.5rem;">
-          🌙
-        </button>
       </nav>
     </div>
   </header>
