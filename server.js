@@ -274,8 +274,12 @@ const upload = multer({
 // API Routes
 
 // 2. Get all members list (useful for dropdowns)
-app.get('/api/members', (req, res) => {
+app.get('/api/members', checkAuth, (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Operators do not have access to members list' });
+    }
+
     if (!fs.existsSync(membersPath)) {
       return res.status(404).json({ error: 'Members configuration not found' });
     }

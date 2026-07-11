@@ -291,7 +291,16 @@ function initPortalPage() {
       memberSelectHidden.value = id;
     }
 
-    fetchHistory();
+    // Admins do not see "Your Upload History" section
+    const historyPanel = document.getElementById('history-panel');
+    if (historyPanel) {
+      if (role === 'admin') {
+        historyPanel.style.display = 'none';
+      } else {
+        historyPanel.style.display = 'block';
+        fetchHistory();
+      }
+    }
   }
 
   // Load choices specifically for the Admin Dropdown
@@ -300,7 +309,9 @@ function initPortalPage() {
     if (!adminMemberSelect || adminMemberSelect.children.length > 1) return; // Already populated
 
     try {
-      const response = await fetch('/api/members');
+      const response = await fetch('/api/members', {
+        headers: getAuthHeaders()
+      });
       if (!response.ok) throw new Error('Failed to load members list');
       const members = await response.json();
       
@@ -521,9 +532,8 @@ function initPortalPage() {
           const operatorDisplayName = document.getElementById('operator-display-name');
           if (operatorDisplayName) operatorDisplayName.value = sessionStorage.getItem('user_name');
           memberSelectHidden.value = sessionStorage.getItem('user_id');
+          fetchHistory(); // Refresh history list
         }
-        
-        fetchHistory(); // Refresh history list
       } else {
         throw new Error(result.error || 'Server rejected file upload');
       }
