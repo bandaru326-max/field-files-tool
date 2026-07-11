@@ -1029,7 +1029,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     width: 100%;
     justify-content: center;
   }
-  
+
+  .logo {
+    gap: 0.35rem;
+  }
+
+  .logo-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .logo-text {
+    font-size: 1.05rem;
+  }
+
   .nav-container {
     flex-direction: column;
     gap: 0.75rem;
