@@ -500,35 +500,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* DASHBOARD PAGE SPECIFICS */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 /* Left Panel - Filters & Actions */
 .sidebar-panel {
   background: var(--glass-card);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem;
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   height: fit-content;
   position: sticky;
-  top: 100px;
+  top: 90px;
 }
 
 .panel-title {
-  font-size: 1.25rem;
-  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+.sidebar-panel .form-group {
+  margin-bottom: 0.85rem;
+}
+
 .sidebar-panel .btn-download {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  min-height: auto;
 }
 
 /* Stats Row */
