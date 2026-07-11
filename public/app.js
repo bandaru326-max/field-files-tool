@@ -52,9 +52,7 @@ function updateNavbar() {
       <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
     `;
   } else {
-    navHtml = `
-      <li><a href="/upload" class="active">LONRIX Portal</a></li>
-    `;
+    navHtml = '';
   }
 
   navList.innerHTML = navHtml;
@@ -107,6 +105,11 @@ function initPortalPage() {
   const uploadForm = document.getElementById('upload-form');
   const adminMemberSelect = document.getElementById('member-select');
   const memberSelectHidden = document.getElementById('member-select-hidden');
+  const uploadDateInput = document.getElementById('upload-date-input');
+
+  if (uploadDateInput) {
+    uploadDateInput.value = new Date().toISOString().split('T')[0];
+  }
 
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
@@ -423,6 +426,10 @@ function initPortalPage() {
       formData.append('fileRemarks', file.remarks || ''); // Individual remark per file
     });
 
+    if (uploadDateInput) {
+      formData.append('uploadDate', uploadDateInput.value);
+    }
+
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -436,6 +443,11 @@ function initPortalPage() {
         showAlert('success', `Successfully uploaded ${selectedFiles.length} file(s) to operator folder!`);
         uploadForm.reset();
         resetFileSelection();
+        
+        // Re-initialize today's date
+        if (uploadDateInput) {
+          uploadDateInput.value = new Date().toISOString().split('T')[0];
+        }
         
         // Hydrate operator details back if operator
         if (sessionStorage.getItem('user_role') === 'operator') {

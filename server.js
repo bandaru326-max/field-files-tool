@@ -291,7 +291,7 @@ app.get('/api/members', (req, res) => {
 // 3. Upload multiple files & metadata (authenticated)
 app.post('/api/upload', checkAuth, upload.array('files', 15), async (req, res) => {
   try {
-    let { memberId, type, reason, remarks, fileRemarks } = req.body;
+    let { memberId, type, reason, remarks, fileRemarks, uploadDate } = req.body;
     
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -319,7 +319,7 @@ app.post('/api/upload', checkAuth, upload.array('files', 15), async (req, res) =
       return res.status(400).json({ error: 'Selected member does not exist' });
     }
 
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = uploadDate || new Date().toISOString().split('T')[0];
     const newRecords = [];
 
     // Load current metadata list safely (used for local fallback)

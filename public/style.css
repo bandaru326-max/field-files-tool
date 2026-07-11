@@ -256,7 +256,7 @@ main {
   pointer-events: none;
 }
 
-select, input[type="text"], textarea {
+select, input[type="text"], input[type="date"], textarea {
   width: 100%;
   background: rgba(8, 9, 14, 0.6);
   border: 1px solid var(--glass-border);
@@ -281,7 +281,7 @@ select option {
   color: var(--text-primary);
 }
 
-input[type="text"]:focus, select:focus, textarea:focus {
+input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
   border-color: var(--accent-cyan);
   box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.15);
 }
@@ -289,6 +289,12 @@ input[type="text"]:focus, select:focus, textarea:focus {
 textarea {
   min-height: 100px;
   resize: vertical;
+}
+
+/* Date picker custom style */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
 }
 
 /* File Upload Drag & Drop Zone */
