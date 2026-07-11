@@ -47,6 +47,43 @@ document.addEventListener('DOMContentLoaded', () => {
       closeAllModals();
     }
   });
+
+  const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener('click', async () => {
+      if (!recordToDeleteId) return;
+
+      try {
+        const res = await fetch(`/api/uploads/${recordToDeleteId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        
+        if (res.status === 401) {
+          sessionStorage.clear();
+          window.location.replace('/upload');
+          return;
+        }
+
+        const result = await res.json();
+
+        if (res.ok) {
+          closeAllModals();
+          const uploadForm = document.getElementById('upload-form');
+          if (uploadForm) {
+            fetchHistory();
+          } else {
+            fetchDashboardUploads();
+          }
+        } else {
+          alert('Failed to delete file: ' + result.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error when attempting to delete.');
+      }
+    });
+  }
 });
 
 // Helper: Get auth headers for Fetch requests
@@ -599,35 +636,7 @@ function initDashboardPage() {
 
   // Modals closing triggers handled globally
 
-  // Delete Action Confirm
-  confirmDeleteBtn.addEventListener('click', async () => {
-    if (!recordToDeleteId) return;
-
-    try {
-      const res = await fetch(`/api/uploads/${recordToDeleteId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (res.status === 401) {
-        sessionStorage.clear();
-        window.location.replace('/upload');
-        return;
-      }
-
-      const result = await res.json();
-
-      if (res.ok) {
-        closeAllModals();
-        fetchDashboardUploads(); // Reload list
-      } else {
-        alert('Failed to delete file: ' + result.error);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Network error when attempting to delete.');
-    }
-  });
+  // Delete Action Confirm handled globally
 }
 
 // Load operator choices inside filter panel
