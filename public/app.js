@@ -530,19 +530,23 @@ function initDashboardPage() {
 
   // Search Input Debouncing
   let debounceTimeout;
-  searchInput.addEventListener('input', () => {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-      fetchDashboardUploads();
-    }, 300);
-  });
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        fetchDashboardUploads();
+      }, 300);
+    });
+  }
 
-  remarksInput.addEventListener('input', () => {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-      fetchDashboardUploads();
-    }, 300);
-  });
+  if (remarksInput) {
+    remarksInput.addEventListener('input', () => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        fetchDashboardUploads();
+      }, 300);
+    });
+  }
 
   // Filter Listeners
   [filterMember, filterStartDate, filterEndDate].forEach(elem => {
@@ -638,8 +642,10 @@ async function fetchDashboardUploads() {
   const recordsContainer = document.getElementById('records-container');
   if (!recordsContainer) return;
 
-  const search = document.getElementById('search-input').value;
-  const remarks = document.getElementById('remarks-search').value;
+  const searchInputElem = document.getElementById('search-input');
+  const remarksInputElem = document.getElementById('remarks-search');
+  const search = searchInputElem ? searchInputElem.value : '';
+  const remarks = remarksInputElem ? remarksInputElem.value : '';
   const memberId = document.getElementById('filter-member').value;
   const startDate = document.getElementById('filter-start-date').value;
   const endDate = document.getElementById('filter-end-date').value;
