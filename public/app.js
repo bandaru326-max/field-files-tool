@@ -739,24 +739,33 @@ function renderRecords(records, showDeleteActions = false) {
   records.forEach(record => {
     const dateStr = formatDateDisplay(record.uploadDate);
     if (!grouped[dateStr]) {
-      grouped[dateStr] = [];
+      grouped[dateStr] = {
+        label: dateStr,
+        maxTimestamp: record.timestamp || 0,
+        items: []
+      };
+    } else {
+      grouped[dateStr].maxTimestamp = Math.max(grouped[dateStr].maxTimestamp, record.timestamp || 0);
     }
-    grouped[dateStr].push(record);
+    grouped[dateStr].items.push(record);
   });
+
+  // Sort groups descending by maxTimestamp (most recent first)
+  const sortedGroups = Object.values(grouped).sort((a, b) => b.maxTimestamp - a.maxTimestamp);
 
   let htmlContent = '';
 
-  Object.keys(grouped).forEach(dateLabel => {
+  sortedGroups.forEach(group => {
     htmlContent += `
       <div class="date-group">
         <div class="date-divider">
-          <span class="date-divider-text">${dateLabel}</span>
+          <span class="date-divider-text">${group.label}</span>
           <div class="date-divider-line"></div>
         </div>
         <div class="records-grid">
     `;
 
-    grouped[dateLabel].forEach(record => {
+    group.items.forEach(record => {
       const isImg = record.filename.match(/\.(jpeg|jpg|gif|png|webp)$/i);
       const isPdf = record.filename.match(/\.(pdf)$/i);
       let mediaPreview = '';
