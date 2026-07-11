@@ -76,7 +76,6 @@ function updateNavbar() {
     `;
   } else if (role === 'operator') {
     navHtml = `
-      <li><a href="/upload" class="active" id="nav-upload-link">Upload Files</a></li>
       <li><a href="#" id="nav-logout-btn" style="color: var(--error);">Logout</a></li>
     `;
   } else {
