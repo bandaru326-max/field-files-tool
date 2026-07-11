@@ -13,8 +13,10 @@
   <!-- Favicon / Styling -->
   <link rel="stylesheet" href="style.css">
   
-  <!-- Instant Redirect if not logged in as Admin -->
+  <!-- Instant Redirect if not logged in as Admin / Theme Setup -->
   <script>
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
     if (sessionStorage.getItem('user_role') !== 'admin') {
       window.location.replace('/upload');
     }
@@ -29,12 +31,15 @@
         <div class="logo-icon">LX</div>
         <span class="logo-text">LONRIX</span>
       </a>
-      <nav aria-label="Main Navigation">
+      <nav aria-label="Main Navigation" style="display: flex; align-items: center; gap: 0.5rem;">
         <ul class="nav-links">
           <li><a href="/upload" id="dashboard-nav-upload">Upload Files</a></li>
           <li><a href="/dashboard" class="active" id="dashboard-nav-dashboard">Dashboard</a></li>
           <li><a href="#" id="dashboard-nav-logout" onclick="sessionStorage.clear(); window.location.replace('/upload'); event.preventDefault();" style="color: var(--error);">Logout</a></li>
         </ul>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme" style="background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); font-size: 1rem; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); outline: none; transition: var(--transition-fast); margin-left: 0.5rem;">
+          🌙
+        </button>
       </nav>
     </div>
   </header>
