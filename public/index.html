@@ -183,7 +183,42 @@
     </div>
   </main>
 
-
+  <!-- Image Preview Modal -->
+  <div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="preview-modal-title">File Preview</h3>
+        <button class="modal-close" id="preview-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-preview-wrapper">
+          <img src="" alt="File Preview Image" class="modal-preview-img" id="preview-image">
+        </div>
+        <div class="modal-details">
+          <div class="details-row">
+            <h4>Uploaded By</h4>
+            <p id="preview-member-name">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Upload Type</h4>
+            <p id="preview-type">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Reason for Upload</h4>
+            <p id="preview-reason">-</p>
+          </div>
+          <div class="details-row">
+            <h4>Remarks</h4>
+            <p id="preview-remarks" class="empty">-</p>
+          </div>
+          <div class="details-row">
+            <h4>File Name</h4>
+            <p id="preview-filename" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SEO Optimized Badge -->
   <div class="seo-optimized-badge">

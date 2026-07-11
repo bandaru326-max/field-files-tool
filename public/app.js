@@ -19,6 +19,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (recordsContainer && !uploadForm) {
     initDashboardPage();
   }
+
+  // Bind close triggers for modals globally if they exist on the page
+  const previewModalClose = document.getElementById('preview-modal-close');
+  if (previewModalClose) {
+    previewModalClose.addEventListener('click', closeAllModals);
+  }
+  const deleteModalClose = document.getElementById('delete-modal-close');
+  if (deleteModalClose) {
+    deleteModalClose.addEventListener('click', closeAllModals);
+  }
+  const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+  if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener('click', closeAllModals);
+  }
+
+  window.addEventListener('click', (e) => {
+    const previewModal = document.getElementById('preview-modal');
+    const deleteModal = document.getElementById('delete-modal');
+    if (e.target === previewModal || e.target === deleteModal) {
+      closeAllModals();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllModals();
+    }
+  });
 });
 
 // Helper: Get auth headers for Fetch requests
@@ -568,22 +596,7 @@ function initDashboardPage() {
     });
   });
 
-  // Modals closing triggers
-  [previewModalClose, deleteModalClose, cancelDeleteBtn].forEach(btn => {
-    btn.addEventListener('click', closeAllModals);
-  });
-
-  window.addEventListener('click', (e) => {
-    if (e.target === previewModal || e.target === deleteModal) {
-      closeAllModals();
-    }
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeAllModals();
-    }
-  });
+  // Modals closing triggers handled globally
 
   // Delete Action Confirm
   confirmDeleteBtn.addEventListener('click', async () => {
@@ -775,6 +788,10 @@ function renderRecords(records, showDeleteActions = false) {
           <div class="record-card-footer">
             <time class="record-date" datetime="${record.uploadDate}">${formatTime(record.timestamp)}</time>
             <div class="record-actions">
+              <button onclick="openPreview('${record.id}')" class="action-btn" title="View file preview" aria-label="View large preview of file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(155, 81, 224, 0.15); border: 1px solid rgba(155, 81, 224, 0.3); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer; color: #a5b4fc; font-weight: 500; outline: none; transition: var(--transition-fast);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                View
+              </button>
               <a href="${downloadUrl}" download="${record.originalName}" class="action-btn" title="Download direct file" aria-label="Download original file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.2); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; text-decoration: none; color: var(--accent-cyan); font-weight: 500;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Download
