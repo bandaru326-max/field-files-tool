@@ -536,8 +536,7 @@ function initDashboardPage() {
   const searchInput = document.getElementById('search-input');
   const remarksInput = document.getElementById('remarks-search');
   const filterMember = document.getElementById('filter-member');
-  const filterStartDate = document.getElementById('filter-start-date');
-  const filterEndDate = document.getElementById('filter-end-date');
+  const filterDate = document.getElementById('filter-date');
   const downloadFilteredBtn = document.getElementById('download-filtered-btn');
 
   // Modal Nodes
@@ -576,7 +575,7 @@ function initDashboardPage() {
   }
 
   // Filter Listeners
-  [filterMember, filterStartDate, filterEndDate].forEach(elem => {
+  [filterMember, filterDate].forEach(elem => {
     if (elem) elem.addEventListener('change', fetchDashboardUploads);
   });
 
@@ -659,15 +658,14 @@ async function fetchDashboardUploads() {
   const search = searchInputElem ? searchInputElem.value : '';
   const remarks = remarksInputElem ? remarksInputElem.value : '';
   const memberId = document.getElementById('filter-member').value;
-  const startDate = document.getElementById('filter-start-date').value;
-  const endDate = document.getElementById('filter-end-date').value;
+  const filterDateElem = document.getElementById('filter-date');
+  const dateVal = filterDateElem ? filterDateElem.value : '';
 
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (remarks) params.append('remarks', remarks);
   if (memberId) params.append('memberId', memberId);
-  if (startDate) params.append('startDate', startDate);
-  if (endDate) params.append('endDate', endDate);
+  if (dateVal) params.append('date', dateVal);
 
   try {
     const res = await fetch(`/api/uploads?${params.toString()}`, {

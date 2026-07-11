@@ -461,19 +461,15 @@ app.get('/api/uploads', checkAuth, async (req, res) => {
         query = query.eq('memberId', req.user.id);
       }
 
-      const { search, memberId, startDate, endDate, remarks } = req.query;
+      const { search, memberId, date, remarks } = req.query;
 
       // Apply filtering (Only allowed for Admin, or within Operator's restricted set)
       if (memberId && req.user.role === 'admin') {
         query = query.eq('memberId', memberId);
       }
 
-      if (startDate) {
-        query = query.gte('uploadDate', startDate);
-      }
-
-      if (endDate) {
-        query = query.lte('uploadDate', endDate);
+      if (date) {
+        query = query.eq('uploadDate', date);
       }
 
       if (remarks) {
@@ -499,19 +495,15 @@ app.get('/api/uploads', checkAuth, async (req, res) => {
         metadata = metadata.filter(r => r.memberId === req.user.id);
       }
 
-      const { search, memberId, startDate, endDate, remarks } = req.query;
+      const { search, memberId, date, remarks } = req.query;
 
       // Apply filtering (Only allowed for Admin, or within Operator's restricted set)
       if (memberId && req.user.role === 'admin') {
         metadata = metadata.filter(r => r.memberId === memberId);
       }
 
-      if (startDate) {
-        metadata = metadata.filter(r => r.uploadDate >= startDate);
-      }
-
-      if (endDate) {
-        metadata = metadata.filter(r => r.uploadDate <= endDate);
+      if (date) {
+        metadata = metadata.filter(r => r.uploadDate === date);
       }
 
       if (remarks) {
