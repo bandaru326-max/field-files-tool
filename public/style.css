@@ -945,12 +945,89 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 0 0.5rem;
   }
   
+  body {
+    padding: 0.5rem;
+  }
+
+  .form-card {
+    padding: 1.5rem 1.25rem;
+    margin: 1rem auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .container, .main, main {
+    padding: 0 0.25rem;
+    width: 100%;
+  }
+
+  .stats-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  select, input[type="text"], input[type="date"], textarea {
+    padding: 0.95rem 1.25rem;
+    font-size: 16px !important; /* Prevents auto-zoom on iOS safari focus */
+  }
+
+  .btn-primary, .btn-secondary, .action-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-container {
+    max-height: 95vh;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
+  }
+
   .modal-body {
     grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 1rem;
   }
   
   .modal-preview-wrapper {
+    min-height: 180px;
     max-height: 250px;
+  }
+
+  .modal-preview-img {
+    max-height: 250px;
+  }
+
+  .lock-card {
+    padding: 2.25rem 1.5rem;
+  }
+
+  .records-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .record-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .record-actions a, .record-actions button {
+    width: 100%;
+    justify-content: center;
   }
   
   .nav-container {
