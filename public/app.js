@@ -158,6 +158,8 @@ function initPortalPage() {
 
   if (role && userId) {
     showPortalUploadForm(role, userId, userName);
+  } else {
+    document.body.style.overflow = 'hidden';
   }
 
   // Handle Login Submission
@@ -207,6 +209,7 @@ function initPortalPage() {
   });
 
   async function showPortalUploadForm(role, id, name) {
+    document.body.style.overflow = 'auto';
     loginCard.style.display = 'none';
     uploadContainer.style.display = 'block';
 

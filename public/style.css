@@ -947,19 +947,49 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   
   body {
-    padding: 0.5rem;
+    padding: 0.25rem;
+  }
+
+  header {
+    padding: 0.35rem 0 !important;
   }
 
   .form-card {
-    padding: 1.5rem 1.25rem;
-    margin: 1rem auto;
+    padding: 1.15rem 0.95rem;
+    margin: 0.35rem auto;
     width: 100%;
     max-width: 100%;
   }
 
+  .form-group {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .upload-zone {
+    padding: 1rem 0.85rem !important;
+  }
+
+  .upload-zone svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .upload-zone p {
+    font-size: 0.8rem !important;
+    margin-top: 0.15rem !important;
+  }
+
+  .upload-zone .file-requirements {
+    font-size: 0.65rem !important;
+  }
+
   .container, .main, main {
-    padding: 0 0.25rem;
+    padding: 0 0.2rem;
     width: 100%;
+  }
+
+  main {
+    padding-bottom: 1.5rem !important;
   }
 
   .stats-container {
