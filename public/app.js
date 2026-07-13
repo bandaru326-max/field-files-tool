@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Check Login State and Route accordingly
   updateNavbar();
+  checkDatabaseConfig();
 
   const loginForm = document.getElementById('login-form');
   const uploadForm = document.getElementById('upload-form');
@@ -584,6 +585,7 @@ async function fetchHistory() {
 let recordToDeleteId = null;
 
 function initDashboardPage() {
+  loadDashboardMembers();
   const filterForm = document.getElementById('filter-form');
   const searchInput = document.getElementById('search-input');
   const remarksInput = document.getElementById('remarks-search');
@@ -1023,4 +1025,20 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
+}
+
+async function checkDatabaseConfig() {
+  try {
+    const res = await fetch('/api/storage-status');
+    if (!res.ok) return;
+    const config = await res.json();
+    if (!config.supabaseActive) {
+      const banner = document.getElementById('db-warning-banner');
+      if (banner) {
+        banner.style.display = 'block';
+      }
+    }
+  } catch (err) {
+    console.error('Storage status fetch failed:', err);
+  }
 }
