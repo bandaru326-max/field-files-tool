@@ -72,7 +72,7 @@ function writeMetadataSafe(data) {
 
 // Initialize Supabase Client if env variables are available
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const isSupabaseConfigured = !!(supabaseUrl && supabaseKey);
 const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey) : null;
 
