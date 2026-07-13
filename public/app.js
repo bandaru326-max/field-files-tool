@@ -585,7 +585,6 @@ async function fetchHistory() {
 let recordToDeleteId = null;
 
 function initDashboardPage() {
-  loadDashboardMembers();
   const filterForm = document.getElementById('filter-form');
   const searchInput = document.getElementById('search-input');
   const remarksInput = document.getElementById('remarks-search');
@@ -635,7 +634,7 @@ function initDashboardPage() {
 
   // Download Filtered Action
   downloadFilteredBtn.addEventListener('click', () => {
-    const downloadLinks = document.querySelectorAll('.records-grid a[download]');
+    const downloadLinks = document.querySelectorAll('a[download]');
     if (downloadLinks.length === 0) {
       alert('No matching files found to download.');
       return;
@@ -656,19 +655,21 @@ function initDashboardPage() {
 // Load operator choices inside filter panel
 async function loadDashboardMembers() {
   try {
-    const response = await fetch('/api/members');
+    const filterMember = document.getElementById('filter-member');
+    if (!filterMember || filterMember.children.length > 1) return; // Already populated
+
+    const response = await fetch('/api/members', {
+      headers: getAuthHeaders()
+    });
     if (!response.ok) throw new Error('Failed to fetch members');
     const members = await response.json();
     
-    const filterMember = document.getElementById('filter-member');
-    if (filterMember) {
-      members.forEach(member => {
-        const opt = document.createElement('option');
-        opt.value = member.id;
-        opt.textContent = member.name;
-        filterMember.appendChild(opt);
-      });
-    }
+    members.forEach(member => {
+      const opt = document.createElement('option');
+      opt.value = member.id;
+      opt.textContent = member.name;
+      filterMember.appendChild(opt);
+    });
   } catch (err) {
     console.error(err);
   }
