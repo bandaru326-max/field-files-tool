@@ -76,6 +76,13 @@ const supabaseKey = (process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_RO
 let isSupabaseConfigured = false;
 let supabase = null;
 
+console.log('--- SUPABASE CONFIGURATION DIAGNOSTICS ---');
+console.log('process.env.SUPABASE_URL exists:', !!process.env.SUPABASE_URL, process.env.SUPABASE_URL ? `(Length: ${process.env.SUPABASE_URL.length})` : '');
+console.log('process.env.SUPABASE_KEY exists:', !!process.env.SUPABASE_KEY);
+console.log('process.env.SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log('Computed supabaseUrl:', supabaseUrl ? `(starts with: ${supabaseUrl.slice(0, 15)}...)` : 'empty');
+console.log('Computed supabaseKey:', supabaseKey ? `(Length: ${supabaseKey.length})` : 'empty');
+
 if (supabaseUrl && supabaseKey) {
   try {
     if (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://')) {
@@ -95,6 +102,7 @@ if (supabaseUrl && supabaseKey) {
 if (!isSupabaseConfigured) {
   console.log('Running in Local Fallback Database Mode.');
 }
+console.log('------------------------------------------');
 
 // Initialize member folders from members.json on startup
 if (fs.existsSync(membersPath)) {
