@@ -743,6 +743,53 @@ function updateDashboardStatistics(records) {
 // ----------------------------------------------------
 // UI RENDERING ENGINE & MODAL CONTROLS
 // ----------------------------------------------------
+function groupRecordsIntoBatches(records) {
+  const batches = [];
+  
+  // Sort records by timestamp descending first (newest first)
+  const sorted = [...records].sort((a, b) => b.timestamp - a.timestamp);
+  
+  sorted.forEach(record => {
+    // Find an existing batch that matches:
+    // - Same memberId
+    // - Same uploadDate
+    // - Same reason
+    // - Same batchRemarks
+    // - Timestamp is within 10 seconds of another item in the batch
+    const match = batches.find(b => 
+      b.memberId === record.memberId &&
+      b.uploadDate === record.uploadDate &&
+      b.reason === record.reason &&
+      b.batchRemarks === record.batchRemarks &&
+      Math.abs(b.timestamp - record.timestamp) < 10000
+    );
+    
+    if (match) {
+      match.files.push(record);
+      // Keep the max timestamp for sorting the batches
+      match.timestamp = Math.max(match.timestamp, record.timestamp);
+    } else {
+      batches.push({
+        id: record.batchId || record.id,
+        memberId: record.memberId,
+        memberName: record.memberName,
+        reason: record.reason,
+        batchRemarks: record.batchRemarks,
+        uploadDate: record.uploadDate,
+        timestamp: record.timestamp,
+        files: [record]
+      });
+    }
+  });
+
+  // Sort files within each batch by timestamp ascending (oldest first)
+  batches.forEach(b => {
+    b.files.sort((a, b) => a.timestamp - b.timestamp);
+  });
+  
+  return batches;
+}
+
 function renderRecords(records, showDeleteActions = false) {
   const container = document.getElementById('records-container');
   if (!container) return;
@@ -766,20 +813,23 @@ function renderRecords(records, showDeleteActions = false) {
     }
   });
 
-  // Group by Date
+  // Group records into batches
+  const batches = groupRecordsIntoBatches(records);
+
+  // Group batches by Date
   const grouped = {};
-  records.forEach(record => {
-    const dateStr = formatDateDisplay(record.uploadDate);
+  batches.forEach(batch => {
+    const dateStr = formatDateDisplay(batch.uploadDate);
     if (!grouped[dateStr]) {
       grouped[dateStr] = {
         label: dateStr,
-        maxTimestamp: record.timestamp || 0,
+        maxTimestamp: batch.timestamp || 0,
         items: []
       };
     } else {
-      grouped[dateStr].maxTimestamp = Math.max(grouped[dateStr].maxTimestamp, record.timestamp || 0);
+      grouped[dateStr].maxTimestamp = Math.max(grouped[dateStr].maxTimestamp, batch.timestamp || 0);
     }
-    grouped[dateStr].items.push(record);
+    grouped[dateStr].items.push(batch);
   });
 
   // Sort groups descending by maxTimestamp (most recent first)
@@ -794,52 +844,82 @@ function renderRecords(records, showDeleteActions = false) {
           <span class="date-divider-text">${group.label}</span>
           <div class="date-divider-line"></div>
         </div>
-        <div class="records-grid">
+        <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
     `;
 
-    group.items.forEach(record => {
-      const isImg = record.filename.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-      const isPdf = record.filename.match(/\.(pdf)$/i);
-      let mediaPreview = '';
-      
-      if (isImg) {
-        mediaPreview = `style="background-image: url('/${record.filePath}');"`;
-      }
-
-      // Secure API stream download URL
-      const tokenVal = encodeURIComponent(sessionStorage.getItem('auth_token') || '');
-      const roleVal = encodeURIComponent(sessionStorage.getItem('user_role') || '');
-      const userIdVal = encodeURIComponent(sessionStorage.getItem('user_id') || '');
-      const downloadUrl = `/api/download/${record.id}?token=${tokenVal}&role=${roleVal}&userId=${userIdVal}`;
+    group.items.forEach(batch => {
+      // Find a representative file in the batch to get general state
+      const groupHeader = batch.files[0];
 
       htmlContent += `
-        <article class="record-card" aria-labelledby="title-${record.id}">
-          <div class="record-media-container" ${mediaPreview} onclick="openPreview('${record.id}')" aria-label="View large preview of file">
-            ${!isImg ? `<div class="record-media-placeholder">${isPdf ? '📕' : '📄'}</div>` : ''}
-          </div>
-          <div class="record-card-body">
-            <h3 class="record-member-name" id="title-${record.id}">${record.memberName} (${memberCounts[record.memberId] || 0})</h3>
-            <p class="record-reason">${escapeHTML(record.reason)}</p>
-            ${record.remarks ? `<p class="record-remarks" style="margin-top: 0.25rem;"><strong>File Note:</strong> ${escapeHTML(record.remarks)}</p>` : ''}
-            ${record.batchRemarks ? `<p class="record-remarks" style="margin-top: 0.25rem; opacity: 0.85;"><strong>Batch Note:</strong> ${escapeHTML(record.batchRemarks)}</p>` : ''}
-          </div>
-          <div class="record-card-footer">
-            <time class="record-date" datetime="${record.uploadDate}">${formatTime(record.timestamp)}</time>
-            <div class="record-actions">
-              <button onclick="openPreview('${record.id}')" class="action-btn" title="View file preview" aria-label="View large preview of file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(155, 81, 224, 0.15); border: 1px solid rgba(155, 81, 224, 0.3); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer; color: #a5b4fc; font-weight: 500; outline: none; transition: var(--transition-fast);">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                View
-              </button>
-              <a href="${downloadUrl}" download="${record.originalName}" class="action-btn" title="Download direct file" aria-label="Download original file" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.2); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; text-decoration: none; color: var(--accent-cyan); font-weight: 500;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download
-              </a>
-              ${showDeleteActions ? `
-              <button onclick="triggerDelete('${record.id}')" class="action-btn btn-delete" title="Delete record" aria-label="Delete this file record">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-              </button>
+        <article class="record-card grouped-card" style="display: flex; flex-direction: column; width: 100%; padding: 1.15rem; gap: 0.85rem; background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: var(--transition-normal);">
+          
+          <!-- Card Top Bar: Operator Name, Date, Reason -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.65rem; gap: 1rem; flex-wrap: wrap;">
+            <div>
+              <h3 class="record-member-name" style="margin: 0; font-size: 1rem; color: var(--accent-cyan); font-family: 'Outfit', sans-serif; font-weight: 600;">
+                ${groupHeader.memberName} (${memberCounts[groupHeader.memberId] || 0})
+              </h3>
+              <p class="record-reason" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">
+                ${escapeHTML(groupHeader.reason)}
+              </p>
+            </div>
+            <div style="text-align: right; min-width: 120px;">
+              <time class="record-date" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">
+                ${formatTime(batch.timestamp)}
+              </time>
+              ${groupHeader.batchRemarks ? `
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem; font-style: italic; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHTML(groupHeader.batchRemarks)}">
+                  <strong>Batch Note:</strong> ${escapeHTML(groupHeader.batchRemarks)}
+                </div>
               ` : ''}
             </div>
+          </div>
+
+          <!-- Attached Files List -->
+          <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            ${batch.files.map((file, idx) => {
+              const isImg = file.filename.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+              const isPdf = file.filename.match(/\.(pdf)$/i);
+              const fileIcon = isImg ? '🖼️' : (isPdf ? '📕' : '📄');
+
+              const tokenVal = encodeURIComponent(sessionStorage.getItem('auth_token') || '');
+              const roleVal = encodeURIComponent(sessionStorage.getItem('user_role') || '');
+              const userIdVal = encodeURIComponent(sessionStorage.getItem('user_id') || '');
+              const downloadUrl = `/api/download/${file.id}?token=${tokenVal}&role=${roleVal}&userId=${userIdVal}`;
+
+              return `
+                <div class="file-item-row" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.6rem 0.85rem; gap: 0.75rem; transition: var(--transition-fast);">
+                  <div style="display: flex; align-items: center; gap: 0.65rem; overflow: hidden; flex: 1;">
+                    <span style="font-size: 1.15rem; flex-shrink: 0;">${fileIcon}</span>
+                    <div style="overflow: hidden; width: 100%;">
+                      <div class="file-name-text" style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${escapeHTML(file.originalName)}">
+                        File ${idx + 1}: ${escapeHTML(file.originalName)}
+                      </div>
+                      <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; flex-wrap: wrap;">
+                        <span>${formatBytes(file.size)}</span>
+                        ${file.remarks ? `<span style="color: var(--text-secondary); font-style: italic;">• Note: ${escapeHTML(file.remarks)}</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- File Actions -->
+                  <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+                    <button onclick="openPreview('${file.id}')" class="action-btn" title="View file" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(155, 81, 224, 0.12); border: 1px solid rgba(155, 81, 224, 0.25); border-radius: var(--radius-sm); cursor: pointer; color: #a5b4fc; outline: none; transition: var(--transition-fast);">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                    <a href="${downloadUrl}" download="${file.originalName}" class="action-btn" title="Download file" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.18); border-radius: var(--radius-sm); text-decoration: none; color: var(--accent-cyan); transition: var(--transition-fast);">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
+                    ${showDeleteActions ? `
+                    <button onclick="triggerDelete('${file.id}')" class="action-btn btn-delete" title="Delete file" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(238, 93, 80, 0.08); border: 1px solid rgba(238, 93, 80, 0.18); border-radius: var(--radius-sm); cursor: pointer; color: var(--error); outline: none; transition: var(--transition-fast);">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </article>
       `;

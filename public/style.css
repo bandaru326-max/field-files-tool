@@ -706,6 +706,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #c084fc;
 }
 
+.file-item-row:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(0, 242, 254, 0.2) !important;
+}
+
 .record-card-body {
   padding: 0.85rem 1.1rem;
   display: flex;
