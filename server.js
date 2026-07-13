@@ -71,15 +71,29 @@ function writeMetadataSafe(data) {
 }
 
 // Initialize Supabase Client if env variables are available
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const isSupabaseConfigured = !!(supabaseUrl && supabaseKey);
-const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey) : null;
+const supabaseUrl = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim() : '';
+const supabaseKey = (process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+let isSupabaseConfigured = false;
+let supabase = null;
 
-if (isSupabaseConfigured) {
-  console.log('Supabase client successfully initialized.');
-} else {
-  console.log('Supabase credentials not found. Falling back to local file-based database.');
+if (supabaseUrl && supabaseKey) {
+  try {
+    if (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://')) {
+      supabase = createClient(supabaseUrl, supabaseKey);
+      isSupabaseConfigured = true;
+      console.log('Supabase client successfully initialized.');
+    } else {
+      console.warn('Supabase URL is not a valid HTTP/HTTPS URL. Falling back to local database.');
+    }
+  } catch (err) {
+    console.error('Failed to initialize Supabase client:', err.message);
+    isSupabaseConfigured = false;
+    supabase = null;
+  }
+}
+
+if (!isSupabaseConfigured) {
+  console.log('Running in Local Fallback Database Mode.');
 }
 
 // Initialize member folders from members.json on startup
