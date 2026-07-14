@@ -206,6 +206,16 @@ app.get('/api/storage-status', (req, res) => {
   });
 });
 
+app.get('/api/env-debug', (req, res) => {
+  res.json({
+    supabaseUrlExists: !!process.env.SUPABASE_URL,
+    supabaseKeyExists: !!process.env.SUPABASE_KEY,
+    supabaseServiceRoleKeyExists: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    isVercelEnv: !!process.env.VERCEL,
+    loadedKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
+  });
+});
+
 // Serve uploaded files statically for fallback/development
 app.use('/uploads', express.static(path.join(baseDir, 'uploads')));
 
