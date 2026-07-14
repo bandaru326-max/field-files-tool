@@ -211,6 +211,7 @@ app.get('/api/env-debug', (req, res) => {
     supabaseUrlExists: !!process.env.SUPABASE_URL,
     supabaseKeyExists: !!process.env.SUPABASE_KEY,
     supabaseServiceRoleKeyExists: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    isSupabaseConfigured: isSupabaseConfigured,
     isVercelEnv: !!process.env.VERCEL,
     loadedKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
   });
