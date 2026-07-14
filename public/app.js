@@ -6,7 +6,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Check Login State and Route accordingly
   updateNavbar();
-  checkDatabaseConfig();
 
   const loginForm = document.getElementById('login-form');
   const uploadForm = document.getElementById('upload-form');
@@ -1026,20 +1025,4 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
-}
-
-async function checkDatabaseConfig() {
-  try {
-    const res = await fetch('/api/storage-status');
-    if (!res.ok) return;
-    const config = await res.json();
-    if (!config.supabaseActive) {
-      const banner = document.getElementById('db-warning-banner');
-      if (banner) {
-        banner.style.display = 'block';
-      }
-    }
-  } catch (err) {
-    console.error('Storage status fetch failed:', err);
-  }
 }
